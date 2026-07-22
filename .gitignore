@@ -1,0 +1,27 @@
+# Build
+*.o
+*.ko
+*.ko.xz
+*.mod
+*.mod.c
+*.cmd
+*.symvers
+*.order
+Module.symvers
+modules.order
+
+# RPM
+*.rpm
+*.src.rpm
+rpmbuild/
+results/
+
+# Editor
+*~
+*.swp
+
+# Python
+__pycache__/
+
+# Logs
+*.log
