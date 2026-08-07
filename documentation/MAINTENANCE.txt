@@ -1,0 +1,121 @@
+linux-ntfs akmod Fedora 44
+Procédure de maintenance
+
+Projet:
+linux-ntfs-akmod-dev
+
+Source amont:
+Namjae Jeon's linux-ntfs
+Branch:
+ntfs-next
+
+Mise à jour d'une nouvelle version ntfs-next:
+
+1. Récupérer le nouveau commit amont
+
+- Mettre à jour le dépôt linux-ntfs
+- Noter le nouveau hash de commit
+- Mettre à jour documentation/ntfs-next-commit.txt
+
+
+2. Créer le nouveau tarball source
+
+Nom recommandé:
+
+linux-ntfs-ntfs-next-<commit-court>.tar.gz
+
+Copier dans:
+
+SOURCES/
+
+
+3. Mise à jour du spec RPM
+
+Modifier:
+
+Version:
+
+dans SPECS/linux-ntfs-kmod.spec
+
+
+Ajouter une entrée %changelog:
+
+- Date
+- Mainteneur
+- Version-release
+- Description du changement
+
+
+4. Construire le SRPM
+
+Commande:
+
+rpmbuild -bs SPECS/linux-ntfs-kmod.spec
+
+
+5. Construire les RPM
+
+Commande:
+
+rpmbuild -ba SPECS/linux-ntfs-kmod.spec
+
+
+6. Tester akmods
+
+Installer:
+
+linux-ntfs-kmod-common
+akmod-linux-ntfs
+
+
+Forcer la génération:
+
+sudo akmods --force --akmod linux-ntfs
+
+
+Vérifier:
+
+find /lib/modules/$(uname -r) -name "ntfs.ko*"
+
+modinfo ntfs
+
+
+7. Tests fonctionnels
+
+- chargement module:
+  sudo modprobe ntfs
+
+- montage NTFS
+
+- test symlink natif:
+
+native_symlink=raw
+
+- test compatibilité WSL:
+
+symlink=wsl
+
+
+Release actuelle:
+
+Version:
+20260807-1.fc44
+
+Commit amont:
+ef4438b3d5525d865e3a1ab62c91e6e65a5c4cc7
+
+Commit court:
+ef4438b
+
+Noyaux testés:
+
+7.1.5-201.fc44.x86_64
+7.1.6-201.fc44.x86_64
+
+Résultat:
+
+Build RPM OK
+Build akmods OK
+Module signé OK
+Chargement OK
+Support symlink corrigé validé
