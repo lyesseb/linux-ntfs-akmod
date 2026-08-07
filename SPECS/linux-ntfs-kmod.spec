@@ -92,14 +92,10 @@ done
 %{?akmod_install}
 
 %changelog
+* Fri Aug 07 2026 Lyes Sebbane <lyesseb@gmail.com> - 20260807-1
+- Update to latest ntfs-next commit ef4438b3d5525d865e3a1ab62c91e6e65a5c4cc7
+- Build external ntfs.ko module from Namjae Jeon's development branch
+- Preserve Fedora akmods integration
 
-* Wed Jul 22 2026 Lyes Sebbane <lyes@example.com> - 20260722-1
+* Wed Jul 22 2026 Lyes Sebbane <lyesseb@gmail.com> - 20260722-1
 - Initial RPM Fusion style packaging for linux-ntfs
-
-%changelog
-
-- Fri Aug 07 2026 Lyes Sebbane <lyes@example.com> - 20260807-1
-
-* Update to latest ntfs-next commit ef4438b3d5525d865e3a1ab62c91e6e65a5c4cc7
-* Include Namjae Jeon NTFS development branch
-* Build external ntfs.ko module for Fedora kernels
