@@ -6,12 +6,12 @@
 Name:           %{prjname}-kmod
 Summary:        Experimental Linux NTFS kernel module
 Version:        20260807
-Release:        1%{?dist}
+Release:        2%{?dist}
 
 License:        GPL-2.0-only
 URL:            https://github.com/namjaejeon/linux-ntfs
 
-Source0:        linux-ntfs-ntfs-next-ef4438b.tar.gz
+Source0:        linux-ntfs-ntfs-next-0b67ca8.tar.gz
 
 ExclusiveArch:  x86_64 aarch64
 
@@ -92,6 +92,12 @@ done
 %{?akmod_install}
 
 %changelog
+* Fri Aug 07 2026 Lyes Sebbane <lyesseb@gmail.com> - 20260807-2
+- Update to ntfs-next commit 0b67ca8f137ef9b440cc31ca02b5d8490dfc057a
+- Include upstream fixes for iomap handling, resident MFT locking,
+  native symlink handling and non-resident attribute validation
+- Rebuild Fedora 44 akmod/kmod packages
+
 * Fri Aug 07 2026 Lyes Sebbane <lyesseb@gmail.com> - 20260807-1
 - Update to latest ntfs-next commit ef4438b3d5525d865e3a1ab62c91e6e65a5c4cc7
 - Build external ntfs.ko module from Namjae Jeon's development branch
