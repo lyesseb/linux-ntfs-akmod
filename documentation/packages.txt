@@ -1,0 +1,17 @@
+kmod-libs-34.2-4.fc44.x86_64
+kmod-34.2-4.fc44.x86_64
+kmodtool-1.2.1-1.fc44.noarch
+xorg-x11-drv-nvidia-kmodsrc-610.43.03-1.fc44.x86_64
+kernel-devel-7.1.5-200.fc44.x86_64
+kmod-nvidia-7.1.5-200.fc44.x86_64-610.43.03-1.fc44.x86_64
+akmod-nvidia-610.43.03-1.fc44.x86_64
+kernel-devel-7.1.5-201.fc44.x86_64
+kmod-nvidia-7.1.5-201.fc44.x86_64-610.43.03-1.fc44.x86_64
+akmods-0.6.2-14.fc44.noarch
+kernel-devel-7.1.6-201.fc44.x86_64
+kernel-devel-matched-7.1.6-201.fc44.x86_64
+kmod-nvidia-7.1.6-201.fc44.x86_64-610.43.03-1.fc44.x86_64
+linux-ntfs-kmod-common-20260722-1.fc44.x86_64
+akmod-linux-ntfs-20260722-1.fc44.x86_64
+kmod-linux-ntfs-7.1.6-201.fc44.x86_64-20260722-1.fc44.x86_64
+kmod-linux-ntfs-7.1.5-201.fc44.x86_64-20260722-1.fc44.x86_64
