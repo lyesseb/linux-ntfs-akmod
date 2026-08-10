@@ -6,12 +6,12 @@
 Name:           %{prjname}-kmod
 Summary:        Experimental Linux NTFS kernel module
 Version:        20260807
-Release:        2%{?dist}
+Release:        3%{?dist}
 
 License:        GPL-2.0-only
 URL:            https://github.com/namjaejeon/linux-ntfs
 
-Source0:        linux-ntfs-ntfs-next-0b67ca8.tar.gz
+Source0:        linux-ntfs-ntfs-next-98f64adf.tar.gz
 
 ExclusiveArch:  x86_64 aarch64
 
@@ -92,6 +92,11 @@ done
 %{?akmod_install}
 
 %changelog
+
+* Mon Aug 10 2026 Lyes Sebbane <lyesseb@gmail.com> - 20260807-3
+- Update to ntfs-next commit 98f64adf306b04537b75aae1c4dd8994e73de57b
+- Update linux-ntfs to upstream ntfs-next commit allowing index root relocation
+
 * Fri Aug 07 2026 Lyes Sebbane <lyesseb@gmail.com> - 20260807-2
 - Update to ntfs-next commit 0b67ca8f137ef9b440cc31ca02b5d8490dfc057a
 - Include upstream fixes for iomap handling, resident MFT locking,
