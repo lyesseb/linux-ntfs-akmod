@@ -1,0 +1,279 @@
+LINUX-NTFS AKMOD — PROCÉDURE D'INSTALLATION / RÉINSTALLATION
+===============================================================
+
+Projet :
+    linux-ntfs-akmod
+
+Objectif :
+    Construire et installer le pilote linux-ntfs de Namjae Jeon,
+    branche ntfs-next, sous Fedora au moyen du mécanisme akmod.
+
+
+VERSION ACTUELLEMENT VALIDÉE
+----------------------------
+
+Version RPM :
+    20260807
+
+Release :
+    4.fc44
+
+Commit upstream :
+    2646c5cb2776c44690e45730a519e498941e1ef8
+
+Date :
+    2026-08-10 16:26:05 +0100
+
+Commit :
+    ntfs: allow index root relocation
+
+Archive :
+    SOURCES/linux-ntfs-ntfs-next-2646c5cb.tar.gz
+
+
+1. PRÉPARATION
+--------------
+
+Projet :
+    ~/Developpement/linux-ntfs-akmod-dev
+
+SPEC :
+    SPECS/linux-ntfs-kmod.spec
+
+Orchestrateur :
+    tools/auto-update-ntfs-next.sh
+
+Unités systemd du projet :
+    tools/systemd/linux-ntfs-next-update.service
+    tools/systemd/linux-ntfs-next-update.timer
+
+
+2. MISE À JOUR UPSTREAM
+-----------------------
+
+Exécuter :
+
+    cd "$HOME/Developpement/linux-ntfs-akmod-dev"
+    FORCE_BUILD=1 /usr/bin/bash tools/auto-update-ntfs-next.sh
+
+L'orchestrateur :
+
+    - vérifie le commit upstream ntfs-next ;
+    - récupère l'archive SOURCE nécessaire ;
+    - met à jour le SPEC ;
+    - synchronise l'environnement rpmbuild ;
+    - construit les RPM lorsque nécessaire ;
+    - identifie le RPM akmod par son nom, sa version, sa release
+      et son architecture ;
+    - installe le RPM akmod attendu ;
+    - déclenche akmods.
+
+
+3. IDENTIFICATION DÉTERMINISTE DU RPM AKMOD
+--------------------------------------------
+
+Le RPM akmod n'est pas recherché selon sa date de modification.
+
+L'orchestrateur extrait du SPEC :
+
+    AKMOD_NAME
+    AKMOD_VERSION
+    AKMOD_RELEASE
+    AKMOD_ARCH
+
+puis construit le chemin déterministe :
+
+    AKMOD_RPM="$RPMBUILD_TOPDIR/RPMS/$AKMOD_ARCH/$AKMOD_NAME-$AKMOD_VERSION-$AKMOD_RELEASE.$AKMOD_ARCH.rpm"
+
+Le fichier attendu est vérifié avant installation.
+
+Cette méthode évite de dépendre de la date de modification du SPEC
+ou de rechercher un RPM parmi plusieurs fichiers.
+
+
+4. VÉRIFICATION DU PROJET
+-------------------------
+
+    /usr/bin/bash -n tools/auto-update-ntfs-next.sh
+    /usr/bin/git diff --check
+    /usr/bin/git status --short
+
+
+5. CONSTRUCTION RPM
+-------------------
+
+La construction utilise :
+
+    /usr/bin/rpmbuild -ba \
+        "$HOME/rpmbuild/SPECS/linux-ntfs-kmod.spec"
+
+Les RPM produits correspondent à la version et à la release
+définies par le SPEC.
+
+Le RPM akmod attendu est déterminé automatiquement par
+AKMOD_RPM.
+
+
+6. INSTALLATION
+---------------
+
+L'orchestrateur installe automatiquement le RPM akmod identifié.
+
+Le paquet linux-ntfs-kmod-common nécessaire est fourni par la
+construction RPM.
+
+La génération du kmod spécifique à chaque noyau est ensuite
+assurée par le mécanisme akmods.
+
+Il n'est pas nécessaire de compiler manuellement ntfs.ko après
+chaque mise à jour du noyau.
+
+
+7. MÉCANISME AKMOD
+------------------
+
+Vérifier :
+
+    /usr/bin/systemctl is-enabled akmods.service
+    /usr/bin/systemctl is-active akmods.service
+
+Vérifier également :
+
+    /usr/bin/systemctl cat akmods.service
+
+Le mécanisme Fedora utilise akmods pour générer et installer le
+kmod linux-ntfs correspondant aux noyaux installés.
+
+
+8. GÉNÉRATION POUR LE NOYAU COURANT
+-----------------------------------
+
+Forcer une vérification/génération :
+
+    sudo /usr/bin/akmods \
+        --akmod linux-ntfs \
+        --kernels "$(/usr/bin/uname -r)" \
+        --verbose
+
+
+9. VÉRIFICATION DU KMOD
+-----------------------
+
+    /usr/bin/rpm -q \
+        "kmod-linux-ntfs-$(/usr/bin/uname -r)"
+
+Puis :
+
+    /usr/bin/modinfo -F filename ntfs
+    /usr/bin/modinfo -F vermagic ntfs
+
+
+10. VÉRIFICATION DU VERMAGIC
+----------------------------
+
+Comparer :
+
+    /usr/bin/uname -r
+
+avec :
+
+    /usr/bin/modinfo -F vermagic ntfs
+
+Le début du vermagic doit correspondre exactement au noyau courant.
+
+
+11. VÉRIFICATION DU MODULE
+--------------------------
+
+    /usr/bin/lsmod | /usr/bin/grep '^ntfs '
+
+Le pilote attendu est :
+
+    ntfs
+
+et non :
+
+    ntfs3
+
+
+12. VÉRIFICATION DES MONTAGES
+-----------------------------
+
+    /usr/bin/findmnt -t ntfs,ntfs3
+
+Les partitions utilisant linux-ntfs doivent apparaître avec :
+
+    FSTYPE ntfs
+
+et non :
+
+    FSTYPE ntfs3
+
+
+13. MISE À JOUR DU NOYAU
+------------------------
+
+Après installation d'un nouveau noyau Fedora :
+
+    - le nouveau noyau est installé ;
+    - akmods détecte l'absence du kmod linux-ntfs correspondant ;
+    - akmods construit le kmod pour ce noyau ;
+    - le module est installé sous /lib/modules/<nouveau-noyau>/ ;
+    - le module peut ensuite être chargé pour ce noyau.
+
+La gestion des kmods par noyau doit rester assurée par akmods.
+
+
+14. AUTOMATISATION DE LA MISE À JOUR UPSTREAM
+---------------------------------------------
+
+Le projet contient un service et un timer systemd utilisateur :
+
+    tools/systemd/linux-ntfs-next-update.service
+    tools/systemd/linux-ntfs-next-update.timer
+
+Le timer appelle :
+
+    tools/auto-update-ntfs-next.sh
+
+Configuration actuelle :
+
+    OnBootSec=15min
+    OnUnitActiveSec=6h
+    RandomizedDelaySec=30min
+    Persistent=true
+
+Vérifier :
+
+    /usr/bin/systemctl --user status linux-ntfs-next-update.timer
+
+    /usr/bin/systemctl --user list-timers \
+        linux-ntfs-next-update.timer \
+        --no-pager
+
+Le service vérifie l'amont et ne reconstruit pas le RPM lorsqu'aucun
+nouveau commit n'est disponible.
+
+
+15. RÉINSTALLATION RAPIDE
+-------------------------
+
+Après préparation d'une nouvelle installation Fedora :
+
+    1. Copier le projet linux-ntfs-akmod.
+    2. Vérifier la branche/commit ntfs-next.
+    3. Vérifier l'archive SOURCE.
+    4. Vérifier le SPEC.
+    5. Vérifier les scripts et unités systemd.
+    6. Construire avec l'orchestrateur ou rpmbuild.
+    7. Installer l'akmod.
+    8. Laisser akmods construire le kmod correspondant au noyau.
+    9. Vérifier modinfo ntfs.
+   10. Vérifier le vermagic.
+   11. Vérifier que le module ntfs est chargé.
+   12. Vérifier les montages avec findmnt.
+
+Le but n'est pas de compiler manuellement ntfs.ko après chaque
+mise à jour du noyau.
+
+La gestion des kmods par noyau est assurée par akmods.

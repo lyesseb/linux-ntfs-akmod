@@ -1,0 +1,8 @@
+[Unit]
+Description=Automatic upstream update check and build for linux-ntfs ntfs-next
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /home/deep/Developpement/linux-ntfs-akmod-dev/tools/auto-update-ntfs-next.sh

@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodic upstream check for linux-ntfs ntfs-next
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=6h
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

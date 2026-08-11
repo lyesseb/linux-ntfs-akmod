@@ -1,121 +1,222 @@
-linux-ntfs akmod Fedora 44
-Procédure de maintenance
+LINUX-NTFS AKMOD — PROCÉDURE DE MAINTENANCE
+=============================================
 
-Projet:
-linux-ntfs-akmod-dev
+Projet :
+    linux-ntfs-akmod-dev
 
-Source amont:
-Namjae Jeon's linux-ntfs
-Branch:
-ntfs-next
+Source amont :
+    Namjae Jeon's linux-ntfs
 
-Mise à jour d'une nouvelle version ntfs-next:
-
-1. Récupérer le nouveau commit amont
-
-- Mettre à jour le dépôt linux-ntfs
-- Noter le nouveau hash de commit
-- Mettre à jour documentation/ntfs-next-commit.txt
+Branch :
+    ntfs-next
 
 
-2. Créer le nouveau tarball source
+1. MISE À JOUR UPSTREAM
+-----------------------
 
-Nom recommandé:
+Le mécanisme automatisé est assuré par :
 
-linux-ntfs-ntfs-next-<commit-court>.tar.gz
+    tools/auto-update-ntfs-next.sh
 
-Copier dans:
+Le script vérifie le commit amont ntfs-next.
 
-SOURCES/
+Lorsqu'un nouveau commit est disponible, il :
 
-
-3. Mise à jour du spec RPM
-
-Modifier:
-
-Version:
-
-dans SPECS/linux-ntfs-kmod.spec
-
-
-Ajouter une entrée %changelog:
-
-- Date
-- Mainteneur
-- Version-release
-- Description du changement
+    - récupère le nouveau commit ;
+    - crée/récupère l'archive SOURCE ;
+    - met à jour le SPEC ;
+    - synchronise l'environnement rpmbuild ;
+    - construit les RPM ;
+    - identifie déterministiquement le RPM akmod ;
+    - installe le nouvel akmod ;
+    - déclenche akmods.
 
 
-4. Construire le SRPM
+2. IDENTIFICATION DU RPM AKMOD
+------------------------------
 
-Commande:
+L'identification du RPM akmod ne doit pas utiliser la date de
+modification des fichiers.
 
-rpmbuild -bs SPECS/linux-ntfs-kmod.spec
+Le script extrait du SPEC :
 
+    AKMOD_NAME
+    AKMOD_VERSION
+    AKMOD_RELEASE
+    AKMOD_ARCH
 
-5. Construire les RPM
+et construit :
 
-Commande:
+    AKMOD_RPM="$RPMBUILD_TOPDIR/RPMS/$AKMOD_ARCH/$AKMOD_NAME-$AKMOD_VERSION-$AKMOD_RELEASE.$AKMOD_ARCH.rpm"
 
-rpmbuild -ba SPECS/linux-ntfs-kmod.spec
+Le fichier est ensuite vérifié avant installation.
 
-
-6. Tester akmods
-
-Installer:
-
-linux-ntfs-kmod-common
-akmod-linux-ntfs
-
-
-Forcer la génération:
-
-sudo akmods --force --akmod linux-ntfs
+Cette identification déterministe est obligatoire pour
+l'automatisation finale.
 
 
-Vérifier:
+3. MISE À JOUR DU SPEC
+----------------------
 
-find /lib/modules/$(uname -r) -name "ntfs.ko*"
+Modifier :
 
-modinfo ntfs
+    SPECS/linux-ntfs-kmod.spec
+
+Mettre à jour :
+
+    Version
+    Release
+    Source
+    %changelog
+
+Chaque nouvelle version doit conserver une correspondance claire
+entre :
+
+    commit upstream
+    archive SOURCE
+    Version RPM
+    Release RPM
 
 
-7. Tests fonctionnels
+4. CONSTRUCTION
+---------------
 
-- chargement module:
-  sudo modprobe ntfs
+Vérifier d'abord :
 
-- montage NTFS
+    /usr/bin/bash -n tools/auto-update-ntfs-next.sh
+    /usr/bin/git diff --check
 
-- test symlink natif:
+Construire :
 
-native_symlink=raw
-
-- test compatibilité WSL:
-
-symlink=wsl
+    /usr/bin/rpmbuild -ba \
+        "$HOME/rpmbuild/SPECS/linux-ntfs-kmod.spec"
 
 
-Release actuelle:
+5. AKMOD
+---------
 
-Version:
-20260807-1.fc44
+Installer le RPM akmod produit par la construction.
 
-Commit amont:
-ef4438b3d5525d865e3a1ab62c91e6e65a5c4cc7
+Puis vérifier :
 
-Commit court:
-ef4438b
+    /usr/bin/rpm -q akmod-linux-ntfs
 
-Noyaux testés:
+Forcer la génération pour le noyau courant si nécessaire :
 
-7.1.5-201.fc44.x86_64
-7.1.6-201.fc44.x86_64
+    sudo /usr/bin/akmods \
+        --force \
+        --akmod linux-ntfs \
+        --kernels "$(/usr/bin/uname -r)"
 
-Résultat:
 
-Build RPM OK
-Build akmods OK
-Module signé OK
-Chargement OK
-Support symlink corrigé validé
+6. VÉRIFICATION DU MODULE
+-------------------------
+
+    /usr/bin/modinfo ntfs
+    /usr/bin/modinfo -F vermagic ntfs
+    /usr/bin/modinfo -F filename ntfs
+
+Vérifier également :
+
+    /usr/bin/lsmod | /usr/bin/grep '^ntfs '
+
+
+7. MONTAGES NTFS
+----------------
+
+    /usr/bin/findmnt -t ntfs,ntfs3
+
+Les partitions utilisant le pilote linux-ntfs doivent apparaître
+avec :
+
+    FSTYPE ntfs
+
+et non :
+
+    FSTYPE ntfs3
+
+
+8. AUTOMATISATION SYSTEMD
+-------------------------
+
+Les unités du projet sont :
+
+    tools/systemd/linux-ntfs-next-update.service
+    tools/systemd/linux-ntfs-next-update.timer
+
+Le timer actuel utilise :
+
+    OnBootSec=15min
+    OnUnitActiveSec=6h
+    RandomizedDelaySec=30min
+    Persistent=true
+
+Vérifier :
+
+    /usr/bin/systemctl --user status \
+        linux-ntfs-next-update.timer \
+        --no-pager
+
+    /usr/bin/systemctl --user list-timers \
+        linux-ntfs-next-update.timer \
+        --no-pager
+
+Le service doit terminer avec succès lorsqu'aucun nouveau commit
+upstream n'est disponible.
+
+
+9. RÈGLE IMPORTANTE
+-------------------
+
+Ne pas ajouter dans l'automatisation une recherche de RPM basée
+sur :
+
+    - la date de modification ;
+    - -newer "$RPMBUILD_SPEC" ;
+    - le dernier fichier trouvé dans RPMS/ ;
+    - un glob ambigu pouvant correspondre à plusieurs RPM.
+
+Le RPM akmod doit être identifié par les métadonnées du SPEC et
+par le chemin déterministe AKMOD_RPM.
+
+
+10. RESPONSABILITÉS
+-------------------
+
+L'orchestrateur est responsable de :
+
+    - surveiller ntfs-next ;
+    - récupérer la nouvelle source ;
+    - mettre à jour le SPEC ;
+    - construire le paquet ;
+    - identifier et installer l'akmod ;
+    - déclencher akmods.
+
+Akmods est responsable de :
+
+    - construire le kmod pour les noyaux concernés ;
+    - gérer les kmods associés aux différents noyaux ;
+    - maintenir la compatibilité avec les mises à jour du noyau.
+
+Le projet ne doit pas revenir à une compilation manuelle de
+ntfs.ko après chaque mise à jour du noyau.
+
+
+11. ÉTAT ACTUEL
+---------------
+
+Commit upstream :
+
+    2646c5cb2776c44690e45730a519e498941e1ef8
+
+Commit :
+
+    ntfs: allow index root relocation
+
+Version :
+
+    20260807
+
+Release :
+
+    4.fc44

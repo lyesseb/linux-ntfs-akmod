@@ -1,3 +1,3 @@
-0b67ca8f137ef9b440cc31ca02b5d8490dfc057a
-2026-08-07 15:34:23 +0900
-ntfs: validate non-resident attribute offsets
+2646c5cb2776c44690e45730a519e498941e1ef8
+2026-08-10 16:26:05 +0100
+ntfs: allow index root relocation
