@@ -5,4 +5,5 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/bash /home/deep/Developpement/linux-ntfs-akmod-dev/tools/auto-update-ntfs-next.sh
+WorkingDirectory=@PROJECT_DIR@
+ExecStart=/usr/bin/bash @PROJECT_DIR@/tools/auto-update-ntfs-next.sh

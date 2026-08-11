@@ -56,9 +56,8 @@ tools/
     update-ntfs-next.sh
 
 tools/systemd/
-    linux-ntfs-next-update.service
+    linux-ntfs-next-update.service.in
     linux-ntfs-next-update.timer
-
 documentation/
     README.txt
     MAINTENANCE.txt
@@ -88,8 +87,8 @@ Il :
 - synchronise l'environnement rpmbuild ;
 - construit les RPM lorsqu'un nouveau build est nécessaire ;
 - identifie le RPM akmod de manière déterministe ;
-- installe le nouvel akmod ;
-- déclenche akmods.
+- n'effectue aucune installation système ;
+- ne lance pas directement akmods.
 ```
 
 ## 2. IDENTIFICATION DÉTERMINISTE DU RPM
@@ -121,7 +120,7 @@ puis construit le chemin attendu :
 $RPMBUILD_TOPDIR/RPMS/$AKMOD_ARCH/$AKMOD_NAME-$AKMOD_VERSION-$AKMOD_RELEASE.$AKMOD_ARCH.rpm
 ```
 
-Le fichier est ensuite explicitement vérifié avant installation.
+Le fichier est ensuite explicitement vérifié comme RPM akmod attendu.
 
 Cette méthode fournit une identification déterministe du paquet
 akmod attendu.
@@ -182,18 +181,17 @@ kmod-linux-ntfs-20260807-4.fc44.x86_64.rpm
 linux-ntfs-kmod-common-20260807-4.fc44.x86_64.rpm
 ```
 
-Le nom exact du RPM akmod installé est déterminé par le SPEC et non
+Le nom exact du RPM akmod produit est déterminé par le SPEC et non
 par une recherche basée sur la date des fichiers.
 
 6. INSTALLATION
 
 ---
 
-L'orchestrateur installe le RPM akmod identifié automatiquement :
+L'orchestrateur identifie le RPM akmod attendu, mais n'effectue aucune installation système.
 
-```
-/usr/bin/dnf install -y "$AKMOD_RPM"
-```
+L'installation du RPM akmod produit est une étape séparée.
+
 
 Il vérifie ensuite :
 
@@ -203,11 +201,8 @@ Il vérifie ensuite :
     --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n'
 ```
 
-Puis déclenche :
+Après installation séparée de l'akmod, la génération des kmods correspondant aux noyaux installés relève du mécanisme akmods de Fedora.
 
-```
-/usr/bin/akmods --force
-```
 
 ## 7. MÉCANISME AKMOD
 
@@ -321,14 +316,17 @@ FSTYPE ntfs3
 Le projet contient les unités :
 
 ```
-tools/systemd/linux-ntfs-next-update.service
+tools/systemd/linux-ntfs-next-update.service.in
 tools/systemd/linux-ntfs-next-update.timer
+tools/install-systemd-user.sh
+
+
 ```
 
 Le service exécute :
 
 ```
-/home/deep/Developpement/linux-ntfs-akmod-dev/tools/auto-update-ntfs-next.sh
+tools/auto-update-ntfs-next.sh
 ```
 
 Le timer utilise actuellement :
@@ -350,7 +348,19 @@ Type=oneshot
 
 Le timer déclenche périodiquement le service.
 
-13. VÉRIFICATION DU TIMER
+
+Installation des unités systemd utilisateur :
+
+```
+/usr/bin/bash tools/install-systemd-user.sh
+```
+
+Le script détermine automatiquement le répertoire du projet et génère
+le fichier service à partir du modèle `linux-ntfs-next-update.service.in`.
+Il installe ensuite le service et le timer dans le répertoire systemd
+utilisateur de l'utilisateur courant, puis recharge systemd et active
+le timer.
+
 
 ---
 
@@ -427,9 +437,11 @@ tools/auto-update-ntfs-next.sh
 
 Timer :
 linux-ntfs-next-update.timer
-
 Service :
 linux-ntfs-next-update.service
+
+Installateur :
+tools/install-systemd-user.sh
 
 Le timer a exécuté correctement le service et le dernier contrôle
 a confirmé :
@@ -440,8 +452,6 @@ a confirmé :
 ✓ Aucun build RPM nécessaire.
 ```
 
-Le mécanisme d'identification déterministe du RPM akmod est intégré
-dans l'orchestrateur.
 
 16. RÈGLE IMPORTANTE
 
@@ -460,7 +470,7 @@ rpmbuild
         ↓
 identification déterministe de l'AKMOD_RPM
         ↓
-installation akmod
+installation séparée de l'AKMOD
         ↓
 akmods
         ↓

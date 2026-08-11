@@ -44,8 +44,11 @@ Orchestrateur :
     tools/auto-update-ntfs-next.sh
 
 Unités systemd du projet :
-    tools/systemd/linux-ntfs-next-update.service
+    tools/systemd/linux-ntfs-next-update.service.in
     tools/systemd/linux-ntfs-next-update.timer
+Installateur systemd utilisateur :
+    tools/install-systemd-user.sh
+
 
 
 2. MISE À JOUR UPSTREAM
@@ -65,8 +68,8 @@ L'orchestrateur :
     - construit les RPM lorsque nécessaire ;
     - identifie le RPM akmod par son nom, sa version, sa release
       et son architecture ;
-    - installe le RPM akmod attendu ;
-    - déclenche akmods.
+    - identifie le RPM akmod attendu ;
+    - ne l'installe pas et ne lance pas directement akmods.
 
 
 3. IDENTIFICATION DÉTERMINISTE DU RPM AKMOD
@@ -117,7 +120,7 @@ AKMOD_RPM.
 6. INSTALLATION
 ---------------
 
-L'orchestrateur installe automatiquement le RPM akmod identifié.
+L'orchestrateur identifie automatiquement le RPM akmod attendu, mais ne l'installe pas.
 
 Le paquet linux-ntfs-kmod-common nécessaire est fourni par la
 construction RPM.
@@ -148,7 +151,7 @@ kmod linux-ntfs correspondant aux noyaux installés.
 8. GÉNÉRATION POUR LE NOYAU COURANT
 -----------------------------------
 
-Forcer une vérification/génération :
+Pour demander manuellement une vérification/génération du kmod pour le noyau courant :
 
     sudo /usr/bin/akmods \
         --akmod linux-ntfs \
@@ -229,8 +232,11 @@ La gestion des kmods par noyau doit rester assurée par akmods.
 
 Le projet contient un service et un timer systemd utilisateur :
 
-    tools/systemd/linux-ntfs-next-update.service
+    tools/systemd/linux-ntfs-next-update.service.in
     tools/systemd/linux-ntfs-next-update.timer
+Installateur systemd utilisateur :
+    tools/install-systemd-user.sh
+
 
 Le timer appelle :
 
@@ -266,7 +272,7 @@ Après préparation d'une nouvelle installation Fedora :
     4. Vérifier le SPEC.
     5. Vérifier les scripts et unités systemd.
     6. Construire avec l'orchestrateur ou rpmbuild.
-    7. Installer l'akmod.
+    7. Installer séparément l'akmod produit.
     8. Laisser akmods construire le kmod correspondant au noyau.
     9. Vérifier modinfo ntfs.
    10. Vérifier le vermagic.

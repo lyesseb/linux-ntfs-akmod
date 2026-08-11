@@ -28,8 +28,8 @@ Lorsqu'un nouveau commit est disponible, il :
     - synchronise l'environnement rpmbuild ;
     - construit les RPM ;
     - identifie déterministiquement le RPM akmod ;
-    - installe le nouvel akmod ;
-    - déclenche akmods.
+    - n'effectue aucune installation système ;
+    - ne lance pas directement akmods.
 
 
 2. IDENTIFICATION DU RPM AKMOD
@@ -95,13 +95,13 @@ Construire :
 5. AKMOD
 ---------
 
-Installer le RPM akmod produit par la construction.
+Installer séparément le RPM akmod produit par la construction, lorsque cette étape est souhaitée.
 
 Puis vérifier :
 
     /usr/bin/rpm -q akmod-linux-ntfs
 
-Forcer la génération pour le noyau courant si nécessaire :
+Si une génération immédiate du kmod pour le noyau courant est nécessaire, elle peut être demandée manuellement :
 
     sudo /usr/bin/akmods \
         --force \
@@ -141,8 +141,11 @@ et non :
 
 Les unités du projet sont :
 
-    tools/systemd/linux-ntfs-next-update.service
+    tools/systemd/linux-ntfs-next-update.service.in
     tools/systemd/linux-ntfs-next-update.timer
+Installateur systemd utilisateur :
+    tools/install-systemd-user.sh
+
 
 Le timer actuel utilise :
 
@@ -189,8 +192,9 @@ L'orchestrateur est responsable de :
     - récupérer la nouvelle source ;
     - mettre à jour le SPEC ;
     - construire le paquet ;
-    - identifier et installer l'akmod ;
-    - déclencher akmods.
+    - identifier le RPM akmod attendu ;
+    - ne pas effectuer l'installation système ;
+    - ne pas lancer directement akmods.
 
 Akmods est responsable de :
 
