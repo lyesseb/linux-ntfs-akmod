@@ -9,10 +9,19 @@ set -Eeuo pipefail
 REPO="https://github.com/namjaejeon/linux-ntfs.git"
 BRANCH="ntfs-next"
 
-PROJECT="$HOME/Developpement/linux-ntfs-akmod-dev"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SPEC="$PROJECT/SPECS/linux-ntfs-kmod.spec"
 DOCUMENTATION="$PROJECT/documentation/ntfs-next-commit.txt"
 SOURCES="$PROJECT/SOURCES"
+
+LOCAL_TZ="$(/usr/bin/timedatectl show --property=Timezone --value 2>/dev/null || true)"
+
+if [ -z "$LOCAL_TZ" ]; then
+    LOCAL_TZ="UTC"
+fi
+
+export LOCAL_TZ
 
 VERSION="$(/usr/bin/rpmspec -q --qf '%{VERSION}\n' "$SPEC" | /usr/bin/head -n 1)"
 CURRENT_RELEASE="$(
@@ -187,6 +196,7 @@ COMMIT_INFO="$(
     printf '%s' "$COMMIT_JSON" |
     /usr/bin/python3 -c '
 import json
+import os
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -197,7 +207,7 @@ date = datetime.fromisoformat(
     d["commit"]["author"]["date"].replace("Z", "+00:00")
 )
 
-date = date.astimezone(ZoneInfo("Africa/Algiers"))
+date = date.astimezone(ZoneInfo(os.environ.get("LOCAL_TZ", "UTC")))
 
 title = d["commit"]["message"].splitlines()[0]
 

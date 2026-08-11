@@ -8,9 +8,19 @@ set -euo pipefail
 
 REPO="https://github.com/namjaejeon/linux-ntfs.git"
 BRANCH="ntfs-next"
-LOCAL_TZ="Africa/Algiers"
 
-cd ~/Developpement/linux-ntfs-akmod-dev
+LOCAL_TZ="$(/usr/bin/timedatectl show --property=Timezone --value 2>/dev/null || true)"
+
+if [ -z "$LOCAL_TZ" ]; then
+    LOCAL_TZ="UTC"
+fi
+
+export LOCAL_TZ
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+cd "$PROJECT"
 
 #######################################
 # Commit installé
@@ -47,6 +57,7 @@ UPSTREAM_INFO=$(curl -fsSL \
 "https://api.github.com/repos/namjaejeon/linux-ntfs/commits/$UPSTREAM" |
 python3 -c '
 import json
+import os
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -57,7 +68,7 @@ date=datetime.fromisoformat(
     d["commit"]["author"]["date"].replace("Z","+00:00")
 )
 
-date=date.astimezone(ZoneInfo("Africa/Algiers"))
+date=date.astimezone(ZoneInfo(os.environ.get("LOCAL_TZ", "UTC")))
 
 title=d["commit"]["message"].splitlines()[0]
 

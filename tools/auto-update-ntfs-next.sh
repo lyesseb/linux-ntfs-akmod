@@ -2,7 +2,8 @@
 
 set -Eeuo pipefail
 
-PROJECT="$HOME/Developpement/linux-ntfs-akmod-dev"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SCRIPT="$PROJECT/tools/update-ntfs-next.sh"
 LOCK="/tmp/auto-update-ntfs-next.lock"
 
@@ -115,6 +116,7 @@ echo "=== IDENTIFICATION DU RPM AKMOD ATTENDU ==="
 AKMOD_NAME=$(
     /usr/bin/rpmspec -q --qf '%{NAME}\n' \
         "$RPMBUILD_SPEC" |
+    /usr/bin/grep '^akmod-linux-ntfs$' |
     /usr/bin/head -n 1
 )
 
@@ -165,24 +167,12 @@ fi
 /usr/bin/ls -lh "$AKMOD_RPM"
 
 echo
-echo "=== INSTALLATION DU NOUVEL AKMOD ==="
-
-/usr/bin/dnf install -y "$AKMOD_RPM"
-
+echo "============================================================"
+echo "RPM AKMOD CONSTRUIT"
+echo "============================================================"
 echo
-echo "✓ akmod-linux-ntfs installé."
-
+echo "RPM : $AKMOD_RPM"
 echo
-echo "=== VÉRIFICATION DU PAQUET INSTALLÉ ==="
-
-/usr/bin/rpm -q \
-    akmod-linux-ntfs \
-    --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n'
-
-echo
-echo "=== DÉCLENCHEMENT AKMOD ==="
-
-/usr/bin/akmods --force
-
-echo
-echo "✓ akmods terminé."
+echo "✓ Le RPM akmod a été construit avec succès."
+echo "✓ Aucune installation système effectuée."
+echo "✓ Aucun lancement direct de akmods effectué."
