@@ -52,24 +52,63 @@ printf '\n%s\n' '=== ÉTAT APRÈS MISE À JOUR ==='
 printf 'Commit : %s\n' "$AFTER_COMMIT"
 printf 'Release : %s\n' "$AFTER_RELEASE"
 
-if [[ "$BEFORE_COMMIT" == "$AFTER_COMMIT" && "${FORCE_BUILD:-0}" != "1" ]]; then
-    echo
-    echo "✓ Aucun nouveau commit upstream."
-    echo "✓ Aucun build RPM nécessaire."
-    exit 0
-fi
+BUILD_REASON=""
 
 if [[ "${FORCE_BUILD:-0}" == "1" ]]; then
-    echo
-    echo "⚠ FORCE_BUILD=1 : branche de construction forcée pour test."
+    BUILD_REASON="force"
+elif [[ "$BEFORE_COMMIT" != "$AFTER_COMMIT" ]]; then
+    BUILD_REASON="upstream"
 else
     echo
-    echo "⚠ Nouveau commit upstream détecté."
-    echo "  Ancien : $BEFORE_COMMIT"
-    echo "  Nouveau : $AFTER_COMMIT"
+    echo "✓ Aucun nouveau commit upstream."
+
+    EXPECTED_COMMIT="$AFTER_COMMIT"
+    INSTALLED_COMMIT=""
+
+    if /usr/bin/rpm -q akmod-linux-ntfs >/dev/null 2>&1; then
+        INSTALLED_COMMIT="$(
+            /usr/bin/rpm -q --changelog akmod-linux-ntfs 2>/dev/null |
+            /usr/bin/grep -oE '[0-9a-f]{40}' |
+            /usr/bin/head -n 1 ||
+            true
+        )"
+    fi
+
+    echo "Commit attendu : $EXPECTED_COMMIT"
+    echo "Commit AKMOD   : ${INSTALLED_COMMIT:-aucun}"
+
+    CURRENT_KERNEL=$(/usr/bin/uname -r)
+
+    if [[ "$INSTALLED_COMMIT" == "$EXPECTED_COMMIT" ]] &&
+       /usr/bin/modinfo -k "$CURRENT_KERNEL" ntfs >/dev/null 2>&1; then
+        echo "✓ AKMOD et module ntfs correspondent au commit suivi."
+        echo "✓ Aucun build RPM nécessaire."
+        exit 0
+    fi
+
+    BUILD_REASON="installed-mismatch"
 fi
 
 echo
+
+case "$BUILD_REASON" in
+    force)
+        echo "⚠ FORCE_BUILD=1 : branche de construction forcée pour test."
+        ;;
+    upstream)
+        echo "⚠ Nouveau commit upstream détecté."
+        echo "  Ancien : $BEFORE_COMMIT"
+        echo "  Nouveau : $AFTER_COMMIT"
+        ;;
+    installed-mismatch)
+        echo "⚠ Le pilote installé ne correspond pas au commit suivi."
+        ;;
+    *)
+        echo "ERREUR : raison de construction inconnue."
+        exit 1
+        ;;
+esac
+
 echo "La branche de construction va maintenant être exécutée."
 
 RPMBUILD_TOPDIR="$HOME/rpmbuild"
