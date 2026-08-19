@@ -117,7 +117,16 @@ if [ "$CURRENT" = "$UPSTREAM" ]; then
 
 else
 
-    COUNT=$(git rev-list --count "$CURRENT..$UPSTREAM" 2>/dev/null || echo "?")
+    COUNT=$(curl -fsSL \
+"https://api.github.com/repos/namjaejeon/linux-ntfs/compare/$CURRENT...$UPSTREAM" |
+python3 -c '
+import json
+import sys
+
+d = json.load(sys.stdin)
+
+print(d["total_commits"])
+')
 
     echo "⚠ Nouveau commit disponible"
     echo
