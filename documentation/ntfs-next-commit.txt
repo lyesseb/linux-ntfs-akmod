@@ -1,3 +1,3 @@
-2646c5cb2776c44690e45730a519e498941e1ef8
-2026-08-10 16:26:05 +0100
-ntfs: allow index root relocation
+cbf02ac92f191fdb6c500c32072efedc1cac3a13
+2026-08-19 03:25:43 +0100
+ntfs: do not update ctime when setxattr fails

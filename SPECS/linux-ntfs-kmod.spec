@@ -6,12 +6,12 @@
 Name:           %{prjname}-kmod
 Summary:        Experimental Linux NTFS kernel module
 Version:        20260807
-Release:        4%{?dist}
+Release:        5%{?dist}
 
 License:        GPL-2.0-only
 URL:            https://github.com/namjaejeon/linux-ntfs
 
-Source0:        linux-ntfs-ntfs-next-2646c5cb.tar.gz
+Source0:        linux-ntfs-ntfs-next-cbf02ac9.tar.gz
 
 ExclusiveArch:  x86_64 aarch64
 
@@ -92,6 +92,10 @@ done
 %{?akmod_install}
 
 %changelog
+
+* Wed Aug 19 2026 Lyes Sebbane <lyesseb@gmail.com> - 5
+- Update to ntfs-next commit cbf02ac92f191fdb6c500c32072efedc1cac3a13
+- Update linux-ntfs: ntfs: do not update ctime when setxattr fails
 
 * Tue Aug 11 2026 Lyes Sebbane <lyesseb@gmail.com> - 4
 - Update to ntfs-next commit 2646c5cb2776c44690e45730a519e498941e1ef8
