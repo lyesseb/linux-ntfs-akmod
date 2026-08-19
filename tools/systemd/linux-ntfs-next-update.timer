@@ -2,9 +2,8 @@
 Description=Periodic upstream check for linux-ntfs ntfs-next
 
 [Timer]
-OnBootSec=15min
-OnUnitActiveSec=6h
-RandomizedDelaySec=30min
+OnBootSec=2min
+OnUnitActiveSec=30min
 Persistent=true
 
 [Install]
