@@ -36,7 +36,7 @@ if [[ ! -d "$RPM_DIR" ]]; then
     exit 1
 fi
 
-RPM="$(
+AKMOD_RPM="$(
     /usr/bin/find "$RPM_DIR" \
         -maxdepth 1 \
         -type f \
@@ -48,16 +48,42 @@ RPM="$(
     /usr/bin/cut -d' ' -f2-
 )"
 
-if [[ -z "$RPM" || ! -f "$RPM" ]]; then
+if [[ -z "$AKMOD_RPM" || ! -f "$AKMOD_RPM" ]]; then
     echo "ERREUR : aucun RPM akmod-linux-ntfs trouvé." >&2
+    exit 1
+fi
+
+AKMOD_VERSION_RELEASE="$(
+    /usr/bin/rpm -qp \
+        --qf '%{VERSION}-%{RELEASE}' \
+        "$AKMOD_RPM"
+)"
+
+KMOD_RPM="$(
+    /usr/bin/find "$RPM_DIR" \
+        -maxdepth 1 \
+        -type f \
+        -name "kmod-linux-ntfs-${AKMOD_VERSION_RELEASE}.${RPM_ARCH}.rpm" \
+        -user "$USER_NAME" \
+        -print -quit
+)"
+
+if [[ -z "$KMOD_RPM" || ! -f "$KMOD_RPM" ]]; then
+    echo "ERREUR : KMOD correspondant introuvable pour AKMOD ${AKMOD_VERSION_RELEASE}." >&2
+    echo "AKMOD : $AKMOD_RPM" >&2
     exit 1
 fi
 
 echo "Utilisateur demandeur : $USER_NAME"
 echo "Architecture RPM      : $RPM_ARCH"
-echo "RPM sélectionné        : $RPM"
+echo "Version-release       : $AKMOD_VERSION_RELEASE"
+echo "AKMOD sélectionné     : $AKMOD_RPM"
+echo "KMOD sélectionné      : $KMOD_RPM"
 echo
 
-/usr/bin/rpm -qpl "$RPM" >/dev/null
+/usr/bin/rpm -qpl "$AKMOD_RPM" >/dev/null
+/usr/bin/rpm -qpl "$KMOD_RPM" >/dev/null
 
-exec /usr/bin/dnf5 -y install "$RPM"
+exec /usr/bin/dnf5 -y install \
+    "$AKMOD_RPM" \
+    "$KMOD_RPM"
