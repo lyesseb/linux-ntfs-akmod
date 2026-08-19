@@ -213,5 +213,19 @@ echo
 echo "RPM : $AKMOD_RPM"
 echo
 echo "✓ Le RPM akmod a été construit avec succès."
-echo "✓ Aucune installation système effectuée."
+
+REQUESTING_USER=$(/usr/bin/id -un)
+
+echo
+echo "=== INSTALLATION DU RPM AKMOD ==="
+echo "Utilisateur demandeur : $REQUESTING_USER"
+echo "Service : linux-ntfs-akmod-install@${REQUESTING_USER}.service"
+
+if ! /usr/bin/systemctl start "linux-ntfs-akmod-install@${REQUESTING_USER}.service"
+then
+    echo "ERREUR : impossible de lancer le service d'installation AKMOD." >&2
+    exit 1
+fi
+
+echo "✓ Demande d'installation transmise à systemd."
 echo "✓ Aucun lancement direct de akmods effectué."

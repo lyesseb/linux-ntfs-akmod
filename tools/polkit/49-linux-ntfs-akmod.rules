@@ -1,0 +1,31 @@
+polkit.addRule(function(action, subject) {
+    if (action.id != "org.freedesktop.systemd1.manage-units")
+        return;
+
+    if (action.lookup("verb") != "start")
+        return;
+
+    var unit = action.lookup("unit");
+
+    if (!unit)
+        return;
+
+    if (!unit.startsWith("linux-ntfs-akmod-install@"))
+        return;
+
+    if (!unit.endsWith(".service"))
+        return;
+
+    var instance = unit.substring(
+        "linux-ntfs-akmod-install@".length,
+        unit.length - ".service".length
+    );
+
+    if (instance != subject.user)
+        return;
+
+    if (!subject.active || !subject.local)
+        return;
+
+    return polkit.Result.YES;
+});

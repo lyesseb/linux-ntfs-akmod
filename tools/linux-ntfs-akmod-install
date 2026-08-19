@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+USER_NAME="${1:-}"
+
+if [[ -z "$USER_NAME" ]]; then
+    echo "ERREUR : utilisateur absent." >&2
+    exit 2
+fi
+
+if [[ "$USER_NAME" == *[!a-zA-Z0-9_.-]* ]]; then
+    echo "ERREUR : nom utilisateur invalide." >&2
+    exit 2
+fi
+
+USER_ENTRY="$(getent passwd "$USER_NAME" || true)"
+
+if [[ -z "$USER_ENTRY" ]]; then
+    echo "ERREUR : utilisateur inconnu : $USER_NAME" >&2
+    exit 1
+fi
+
+USER_HOME="$(printf '%s\n' "$USER_ENTRY" | cut -d: -f6)"
+
+if [[ -z "$USER_HOME" || ! -d "$USER_HOME" ]]; then
+    echo "ERREUR : répertoire personnel introuvable." >&2
+    exit 1
+fi
+
+RPM_ARCH="$(/usr/bin/rpm --eval '%{_arch}')"
+RPM_DIR="$USER_HOME/rpmbuild/RPMS/$RPM_ARCH"
+
+if [[ ! -d "$RPM_DIR" ]]; then
+    echo "ERREUR : répertoire RPM introuvable : $RPM_DIR" >&2
+    exit 1
+fi
+
+RPM="$(
+    /usr/bin/find "$RPM_DIR" \
+        -maxdepth 1 \
+        -type f \
+        -name 'akmod-linux-ntfs-*.rpm' \
+        -user "$USER_NAME" \
+        -printf '%T@ %p\n' |
+    /usr/bin/sort -nr |
+    /usr/bin/head -n 1 |
+    /usr/bin/cut -d' ' -f2-
+)"
+
+if [[ -z "$RPM" || ! -f "$RPM" ]]; then
+    echo "ERREUR : aucun RPM akmod-linux-ntfs trouvé." >&2
+    exit 1
+fi
+
+echo "Utilisateur demandeur : $USER_NAME"
+echo "Architecture RPM      : $RPM_ARCH"
+echo "RPM sélectionné        : $RPM"
+echo
+
+/usr/bin/rpm -qpl "$RPM" >/dev/null
+
+exec /usr/bin/dnf5 -y install "$RPM"

@@ -1,0 +1,9 @@
+[Unit]
+Description=Install the locally built linux-ntfs akmod RPM for user %i
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=@HELPER_PATH@ %i
