@@ -114,6 +114,14 @@ echo "La branche de construction va maintenant être exécutée."
 RPMBUILD_TOPDIR="$HOME/rpmbuild"
 RPMBUILD_SPEC="$RPMBUILD_TOPDIR/SPECS/linux-ntfs-kmod.spec"
 
+/usr/bin/mkdir -p \
+    "$RPMBUILD_TOPDIR/BUILD" \
+    "$RPMBUILD_TOPDIR/BUILDROOT" \
+    "$RPMBUILD_TOPDIR/RPMS" \
+    "$RPMBUILD_TOPDIR/SOURCES" \
+    "$RPMBUILD_TOPDIR/SPECS" \
+    "$RPMBUILD_TOPDIR/SRPMS"
+
 SPEC_EXPANDED=$(
     /usr/bin/rpmspec -P "$PROJECT/SPECS/linux-ntfs-kmod.spec"
 )

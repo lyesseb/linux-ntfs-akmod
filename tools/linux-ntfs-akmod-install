@@ -74,16 +74,34 @@ if [[ -z "$KMOD_RPM" || ! -f "$KMOD_RPM" ]]; then
     exit 1
 fi
 
+COMMON_RPM="$(
+    /usr/bin/find "$RPM_DIR" \
+        -maxdepth 1 \
+        -type f \
+        -name "linux-ntfs-kmod-common-${AKMOD_VERSION_RELEASE}.${RPM_ARCH}.rpm" \
+        -user "$USER_NAME" \
+        -print -quit
+)"
+
+if [[ -z "$COMMON_RPM" || ! -f "$COMMON_RPM" ]]; then
+    echo "ERREUR : paquet common correspondant introuvable pour AKMOD ${AKMOD_VERSION_RELEASE}." >&2
+    echo "AKMOD : $AKMOD_RPM" >&2
+    exit 1
+fi
+
 echo "Utilisateur demandeur : $USER_NAME"
 echo "Architecture RPM      : $RPM_ARCH"
 echo "Version-release       : $AKMOD_VERSION_RELEASE"
+echo "Common sélectionné    : $COMMON_RPM"
 echo "AKMOD sélectionné     : $AKMOD_RPM"
 echo "KMOD sélectionné      : $KMOD_RPM"
 echo
 
+/usr/bin/rpm -qpl "$COMMON_RPM" >/dev/null
 /usr/bin/rpm -qpl "$AKMOD_RPM" >/dev/null
 /usr/bin/rpm -qpl "$KMOD_RPM" >/dev/null
 
 exec /usr/bin/dnf5 -y install \
+    "$COMMON_RPM" \
     "$AKMOD_RPM" \
     "$KMOD_RPM"

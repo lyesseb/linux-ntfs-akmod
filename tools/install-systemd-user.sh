@@ -11,6 +11,7 @@ TIMER_SOURCE="$PROJECT_DIR/tools/systemd/linux-ntfs-next-update.timer"
 AKMOD_SERVICE_TEMPLATE="$PROJECT_DIR/tools/systemd/linux-ntfs-akmod-install@.service.in"
 AKMOD_HELPER="$PROJECT_DIR/tools/linux-ntfs-akmod-install"
 POLKIT_SOURCE="$PROJECT_DIR/tools/polkit/49-linux-ntfs-akmod.rules"
+DEPENDENCIES_INSTALLER="$PROJECT_DIR/tools/install-dependencies.sh"
 
 USER_SYSTEMD_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 
@@ -38,7 +39,8 @@ for file in \
     "$TIMER_SOURCE" \
     "$AKMOD_SERVICE_TEMPLATE" \
     "$AKMOD_HELPER" \
-    "$POLKIT_SOURCE"
+    "$POLKIT_SOURCE" \
+    "$DEPENDENCIES_INSTALLER"
 do
     if [[ ! -f "$file" ]]; then
         printf 'ERREUR : fichier introuvable : %s\n' "$file" >&2
@@ -55,6 +57,15 @@ if [[ ! -x "$AKMOD_HELPER" ]]; then
     printf 'ERREUR : helper AKMOD non exécutable.\n' >&2
     exit 1
 fi
+
+if [[ ! -x "$DEPENDENCIES_INSTALLER" ]]; then
+    printf 'ERREUR : installateur de dépendances non exécutable.\n' >&2
+    exit 1
+fi
+
+printf '\n%s\n' '=== INSTALLATION DES DEPENDANCES ==='
+
+"$DEPENDENCIES_INSTALLER"
 
 printf '\n%s\n' '=== INSTALLATION SERVICE SYSTÈME ==='
 
