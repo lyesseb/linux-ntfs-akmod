@@ -20,6 +20,15 @@ FEDORA_VERSION="$(/usr/bin/rpm -E '%{fedora}')"
 RPMFUSION_FREE_RELEASE="rpmfusion-free-release"
 RPMFUSION_FREE_RELEASE_URL="https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VERSION}.noarch.rpm"
 
+printf '%s\n' '=== DESINSTALLATION NTFS-3G ==='
+
+if /usr/bin/rpm -q ntfs-3g >/dev/null 2>&1; then
+    printf '%s\n' '⚠ ntfs-3g installé : suppression pour utiliser le pilote linux-ntfs.'
+    sudo /usr/bin/dnf5 -y remove ntfs-3g
+else
+    printf '%s\n' '✓ ntfs-3g absent.'
+fi
+
 printf '%s\n' '=== RPM FUSION FREE ==='
 
 if /usr/bin/rpm -q "$RPMFUSION_FREE_RELEASE" >/dev/null 2>&1; then
