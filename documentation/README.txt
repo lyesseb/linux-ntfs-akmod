@@ -27,19 +27,19 @@ Version RPM :
 20260807
 
 Release :
-4.fc44
+5.fc44
 
 Commit upstream :
-2646c5cb2776c44690e45730a519e498941e1ef8
+cbf02ac92f191fdb6c500c32072efedc1cac3a13
 
 Date :
-2026-08-10 16:26:05 +0100
+2026-08-19
 
 Commit :
-ntfs: allow index root relocation
+ntfs: do not update ctime when setxattr fails
 
 Archive source :
-SOURCES/linux-ntfs-ntfs-next-2646c5cb.tar.gz
+SOURCES/linux-ntfs-ntfs-next-cbf02ac9.tar.gz
 
 ## STRUCTURE DU PROJET
 
@@ -170,15 +170,15 @@ Le build RPM est effectué par :
 Pour la version actuellement validée, les RPM doivent porter :
 
 ```
-20260807-4.fc44
+20260807-5.fc44
 ```
 
 avec notamment :
 
 ```
-akmod-linux-ntfs-20260807-4.fc44.x86_64.rpm
-kmod-linux-ntfs-20260807-4.fc44.x86_64.rpm
-linux-ntfs-kmod-common-20260807-4.fc44.x86_64.rpm
+akmod-linux-ntfs-20260807-5.fc44.x86_64.rpm
+kmod-linux-ntfs-20260807-5.fc44.x86_64.rpm
+linux-ntfs-kmod-common-20260807-5.fc44.x86_64.rpm
 ```
 
 Le nom exact du RPM akmod produit est déterminé par le SPEC et non
@@ -427,10 +427,10 @@ ntfs.ko à chaque mise à jour du noyau.
 Au moment de cette documentation :
 
 Commit ntfs-next :
-2646c5cb2776c44690e45730a519e498941e1ef8
+cbf02ac92f191fdb6c500c32072efedc1cac3a13
 
 Release RPM :
-20260807-4.fc44
+20260807-5.fc44
 
 L'orchestrateur :
 tools/auto-update-ntfs-next.sh
