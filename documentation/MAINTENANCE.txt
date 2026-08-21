@@ -209,13 +209,15 @@ ntfs.ko après chaque mise à jour du noyau.
 11. ÉTAT ACTUEL
 ---------------
 
+État de référence actuellement validé :
+
 Commit upstream :
 
-    2646c5cb2776c44690e45730a519e498941e1ef8
+    cbf02ac92f191fdb6c500c32072efedc1cac3a13
 
 Commit :
 
-    ntfs: allow index root relocation
+    ntfs: do not update ctime when setxattr fails
 
 Version :
 
@@ -223,4 +225,90 @@ Version :
 
 Release :
 
-    4.fc44
+    5.fc44
+
+Archive source :
+
+    SOURCES/linux-ntfs-ntfs-next-cbf02ac9.tar.gz
+
+
+VALIDATION FINALE
+-----------------
+
+Le mécanisme linux-ntfs-akmod a été testé et validé sur quatre
+machines Fedora.
+
+Les validations couvrent notamment :
+
+    - synchronisation du dépôt Git avec GitHub ;
+    - détection du commit ntfs-next suivi ;
+    - absence de rebuild lorsque le commit upstream est inchangé ;
+    - fonctionnement de l'orchestrateur automatique ;
+    - fonctionnement du timer systemd utilisateur ;
+    - construction et installation du paquet akmod ;
+    - génération du kmod pour le noyau courant ;
+    - chargement automatique du module ntfs ;
+    - correspondance du module avec le noyau courant ;
+    - fonctionnement avec Secure Boot et module signé ;
+    - montage des partitions NTFS avec le pilote linux-ntfs ;
+    - utilisation des options native_symlink=raw et symlink=wsl ;
+    - absence de dépendance à ntfs-3g ;
+    - vérification par akmods après mise à jour du noyau.
+
+Validation représentative sur Legion :
+
+    Noyau :
+        7.1.8-200.fc44.x86_64
+
+    Kernel-devel correspondant :
+        kernel-devel-7.1.8-200.fc44.x86_64
+
+    Paquet akmod :
+        akmod-linux-ntfs-20260807-5.fc44.x86_64
+
+    Module :
+        /lib/modules/7.1.8-200.fc44.x86_64/extra/linux-ntfs/ntfs.ko.xz
+
+    Vermagic :
+        7.1.8-200.fc44.x86_64 SMP preempt mod_unload
+
+    Signature :
+        PKCS#7
+
+    Service akmods :
+        active (exited), status=0/SUCCESS
+
+    Vérification akmods :
+        Checking kmods exist for 7.1.8-200.fc44.x86_64 [ OK ]
+
+    Module chargé :
+        ntfs
+
+    Partitions validées :
+        /mnt/Autres
+        /mnt/Utilitaires
+
+    Type de système de fichiers :
+        ntfs
+
+    Options linux-ntfs validées :
+        native_symlink=raw
+        symlink=wsl
+
+
+AUTOMATISATION UPSTREAM
+-----------------------
+
+Le timer systemd utilisateur vérifie périodiquement ntfs-next.
+
+Lorsque le commit upstream est inchangé :
+
+    - aucune archive source inutile n'est créée ;
+    - aucun fichier n'est modifié ;
+    - aucun nouveau build RPM n'est effectué ;
+    - l'AKMOD et le module ntfs sont vérifiés par rapport au commit suivi.
+
+Le mécanisme est donc considéré comme opérationnel et validé.
+
+Le projet ne doit pas revenir à une compilation manuelle de
+ntfs.ko après chaque mise à jour du noyau.
