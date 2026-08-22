@@ -2,7 +2,7 @@
 
 Fedora RPM/akmod packaging and maintenance automation for the experimental **linux-ntfs** kernel driver from Namjae Jeon, using the `ntfs-next` development branch.
 
-> **Status:** experimental project. The package tracks the upstream `ntfs-next` development branch and is intended for testing and use on Fedora 44 systems.
+> **Status:** experimental project. The package tracks the upstream `ntfs-next` development branch and is intended for testing and use on Fedora 44 systems. It is independent of the desktop environment and integrates with the standard Fedora storage stack (`udisks2`).
 
 ## What this project provides
 
@@ -26,7 +26,7 @@ The project is designed so that a normal user does not need to manually compile 
 | Upstream branch | `ntfs-next` |
 | Upstream commit | `cbf02ac92f191fdb6c500c32072efedc1cac3a13` |
 | Upstream subject | `ntfs: do not update ctime when setxattr fails` |
-| Project commit | `6ac835d` |
+| Project commit | `9908676` |
 
 ## Installation
 
