@@ -26,7 +26,7 @@ The project is designed so that a normal user does not need to manually compile 
 | Upstream branch | `ntfs-next` |
 | Upstream commit | `cbf02ac92f191fdb6c500c32072efedc1cac3a13` |
 | Upstream subject | `ntfs: do not update ctime when setxattr fails` |
-| Project commit | `d49f925` |
+| Project commit | `43900de` |
 
 ## Installation
 
