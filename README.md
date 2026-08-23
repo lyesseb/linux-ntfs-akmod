@@ -26,7 +26,7 @@ The project is designed so that a normal user does not need to manually compile 
 | Upstream branch | `ntfs-next` |
 | Upstream commit | `cbf02ac92f191fdb6c500c32072efedc1cac3a13` |
 | Upstream subject | `ntfs: do not update ctime when setxattr fails` |
-| Project commit | `cf14e22` |
+| Project commit | `43b40ca` |
 
 ## Installation
 
@@ -53,6 +53,40 @@ The installer automatically:
 6. installs and enables the user systemd timer.
 
 The installer is intended to be run **without `sudo`**. It invokes `sudo` only for operations that require root privileges.
+
+## Uninstallation
+
+The project provides a dedicated uninstallation entry point:
+
+```bash
+cd "$HOME/Developpement/linux-ntfs-akmod-dev"
+./tools/uninstall-systemd-user.sh
+```
+
+The uninstaller is intended to be run **without** **`sudo`**. It invokes `sudo` only for operations that require root privileges.
+
+Before a real uninstallation, all NTFS volumes using the `linux-ntfs` driver must be unmounted. The uninstaller checks this automatically and stops if an `ntfs` filesystem is still mounted.
+
+A simulation can be performed first:
+
+```bash
+./tools/uninstall-systemd-user.sh --dry-run
+```
+
+The uninstaller removes:
+
+1. the user `linux-ntfs-next-update.timer` and its service files;
+2. the system-side installation helper and systemd template;
+3. the Polkit rule installed by the project;
+4. the installed `akmod-linux-ntfs` package;
+5. the installed `linux-ntfs-kmod-common` package;
+6. all installed `kmod-linux-ntfs-*` packages.
+
+After removal, `ntfs-3g` is restored automatically so that the system has a standard NTFS userspace handler again.
+
+The uninstaller does **not** modify `/etc/fstab`.
+
+After uninstallation, the project-specific automatic maintenance timer, AKMOD/KMOD packages and privileged installation path are no longer present.
 
 ## Native NTFS mounting
 
