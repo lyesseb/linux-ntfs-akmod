@@ -6,7 +6,6 @@ kernel-devel-7.1.9-200.fc44.x86_64
 kernel-devel-matched-7.1.9-200.fc44.x86_64
 kmod-34.2-4.fc44.x86_64
 kmod-libs-34.2-4.fc44.x86_64
-kmod-linux-ntfs-7.1.7-200.fc44.x86_64-20260807-3.fc44.x86_64
 kmod-linux-ntfs-7.1.8-200.fc44.x86_64-20260807-5.fc44.x86_64
 kmod-linux-ntfs-7.1.9-200.fc44.x86_64-20260807-5.fc44.x86_64
 kmod-nvidia-7.1.7-200.fc44.x86_64-610.57.04-1.fc44.x86_64
