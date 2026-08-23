@@ -46,7 +46,7 @@ Archive source :
 SOURCES/linux-ntfs-ntfs-next-cbf02ac9.tar.gz
 
 Commit du projet :
-d49f925
+cf14e22
 
 ## STRUCTURE DU PROJET
 
@@ -450,7 +450,7 @@ Au moment de cette documentation :
 ```
 Commit ntfs-next : cbf02ac92f191fdb6c500c32072efedc1cac3a13
 Release RPM      : 20260807-5.fc44
-Commit projet    : d49f925
+Commit projet    : cf14e22
 ```
 
 L'orchestrateur :
