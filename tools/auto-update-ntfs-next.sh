@@ -136,26 +136,46 @@ if [[ -z "$SOURCE_NAME" ]]; then
     exit 1
 fi
 
-SOURCE_FILE="$PROJECT/SOURCES/$SOURCE_NAME"
-RPMBUILD_SOURCE="$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME"
-
-if [[ ! -f "$SOURCE_FILE" ]]; then
-    echo "ERREUR : archive SOURCE introuvable."
-    exit 1
-fi
-
 echo "=== SYNCHRONISATION RPMBUILD ==="
 
-echo "SPEC    : $RPMBUILD_SPEC"
-echo "SOURCE  : $RPMBUILD_SOURCE"
+echo "SPEC : $RPMBUILD_SPEC"
 
 /usr/bin/cp -v \
     "$PROJECT/SPECS/linux-ntfs-kmod.spec" \
     "$RPMBUILD_SPEC"
 
-/usr/bin/cp -v \
-    "$SOURCE_FILE" \
-    "$RPMBUILD_SOURCE"
+echo
+echo "=== SYNCHRONISATION SOURCES / PATCHES ==="
+
+mapfile -t RPM_INPUTS < <(
+    printf '%s\\n' "$SPEC_EXPANDED" |
+    /usr/bin/awk '
+        $1 ~ /^Source[0-9]*:$/ || $1 ~ /^Patch[0-9]*:$/ {
+            print $2
+        }
+    '
+)
+
+if [[ "${#RPM_INPUTS[@]}" -eq 0 ]]; then
+    echo "ERREUR : aucun Source/Patch trouvé dans le SPEC."
+    exit 1
+fi
+
+for RPM_INPUT in "${RPM_INPUTS[@]}"; do
+    INPUT_FILE="$PROJECT/SOURCES/$RPM_INPUT"
+    RPMBUILD_INPUT="$RPMBUILD_TOPDIR/SOURCES/$RPM_INPUT"
+
+    if [[ ! -f "$INPUT_FILE" ]]; then
+        echo "ERREUR : fichier Source/Patch introuvable :"
+        echo "$INPUT_FILE"
+        exit 1
+    fi
+
+    echo "SOURCE/PATCH : $INPUT_FILE"
+    echo "              -> $RPMBUILD_INPUT"
+
+    /usr/bin/cp -v         "$INPUT_FILE"         "$RPMBUILD_INPUT"
+done
 
 echo
 echo "=== IDENTIFICATION DU RPM AKMOD ATTENDU ==="

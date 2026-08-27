@@ -31,22 +31,29 @@ Version RPM :
 20260807
 
 Release :
-5.fc44
+13.fc44
 
 Commit upstream :
-cbf02ac92f191fdb6c500c32072efedc1cac3a13
+4e41ce6f7a7711299e12dcb9c77533a7ab273913
 
 Date :
-2026-08-19
+2026-08-27
 
 Commit :
-ntfs: do not update ctime when setxattr fails
+ntfs: compute bi_sector in 512-byte units
 
 Archive source :
-SOURCES/linux-ntfs-ntfs-next-cbf02ac9.tar.gz
+SOURCES/linux-ntfs-ntfs-next-4e41ce6f.tar.gz
+
+Patch local :
+SOURCES/0001-ntfs-fix-bio-sector-callers.patch
+
+Le patch local adapte les appels à ntfs_bytes_to_bio_sector()
+au changement de représentation de bi_sector en secteurs de
+512 octets.
 
 Commit du projet :
-cf14e22
+5194f61
 
 ## STRUCTURE DU PROJET
 
@@ -224,22 +231,22 @@ Puis :
 Pour la version actuellement validée, les RPM doivent porter :
 
 ```
-20260807-5.fc44
+20260807-13.fc44
 ```
 
 avec notamment :
 
 ```
-akmod-linux-ntfs-20260807-5.fc44.x86_64.rpm
-kmod-linux-ntfs-20260807-5.fc44.x86_64.rpm
-linux-ntfs-kmod-common-20260807-5.fc44.x86_64.rpm
+akmod-linux-ntfs-20260807-13.fc44.x86_64.rpm
+kmod-linux-ntfs-20260807-13.fc44.x86_64.rpm
+linux-ntfs-kmod-common-20260807-13.fc44.x86_64.rpm
 ```
 
 Pour un noyau précis, un paquet KMOD correspondant doit être présent,
 par exemple :
 
 ```
-kmod-linux-ntfs-<kernel>-20260807-5.fc44.x86_64
+kmod-linux-ntfs-<kernel>-20260807-13.fc44.x86_64
 ```
 
 ## 6. INSTALLATION DU MÉCANISME
@@ -448,9 +455,9 @@ Le projet ne doit pas réintroduire une compilation manuelle de ntfs.ko
 Au moment de cette documentation :
 
 ```
-Commit ntfs-next : cbf02ac92f191fdb6c500c32072efedc1cac3a13
-Release RPM      : 20260807-5.fc44
-Commit projet    : cf14e22
+Commit ntfs-next : 4e41ce6f7a7711299e12dcb9c77533a7ab273913
+Release RPM      : 20260807-13.fc44
+Commit projet    : 5194f61
 ```
 
 L'orchestrateur :

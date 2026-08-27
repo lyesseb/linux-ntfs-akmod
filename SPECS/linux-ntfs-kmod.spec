@@ -6,12 +6,13 @@
 Name:           %{prjname}-kmod
 Summary:        Experimental Linux NTFS kernel module
 Version:        20260807
-Release:        5%{?dist}
+Release:        13%{?dist}
 
 License:        GPL-2.0-only
 URL:            https://github.com/namjaejeon/linux-ntfs
 
-Source0:        linux-ntfs-ntfs-next-cbf02ac9.tar.gz
+Source0:        linux-ntfs-ntfs-next-4e41ce6f.tar.gz
+Patch0:         0001-ntfs-fix-bio-sector-callers.patch
 
 ExclusiveArch:  x86_64 aarch64
 
@@ -65,6 +66,7 @@ kmodtool \
     2>/dev/null
 
 %setup -q -n linux-ntfs
+%patch -P 0 -p1
 
 for kernel_version in %{?kernel_versions}; do
     mkdir ../_kmod_build_${kernel_version%%___*}
@@ -92,6 +94,38 @@ done
 %{?akmod_install}
 
 %changelog
+
+* Thu Aug 27 2026 Lyes Sebbane <lyesseb@gmail.com> - 13
+- Update to ntfs-next commit 4e41ce6f7a7711299e12dcb9c77533a7ab273913
+- Update linux-ntfs: ntfs: compute bi_sector in 512-byte units
+
+* Wed Aug 26 2026 Lyes Sebbane <lyesseb@gmail.com> - 12
+- Update to ntfs-next commit 30a96e357901a3d771f1dadb1444f63332fb52e3
+- Update linux-ntfs: ntfs: handle signal interruption in fallocate
+
+* Tue Aug 25 2026 Lyes Sebbane <lyesseb@gmail.com> - 11
+- Update to ntfs-next commit 2f592fc51ea45ecc3b1b709f46ccbaa43dde2cc7
+- Update linux-ntfs: ntfs: fix incorrect MFT record pointer passed to ntfs_attr_record_resize
+
+* Tue Aug 25 2026 Lyes Sebbane <lyesseb@gmail.com> - 10
+- Update to ntfs-next commit 61471e16dd8304b50692d5db9bb45348f788446d
+- Update linux-ntfs: ntfs: skip free cluster decrement when rollback fails
+
+* Tue Aug 25 2026 Lyes Sebbane <lyesseb@gmail.com> - 9
+- Update to ntfs-next commit e96718b644710ee3aebf9ee3b572853a0872ee25
+- Update linux-ntfs: ntfs: use NULL for ntfs_attr_readall failures
+
+* Tue Aug 25 2026 Lyes Sebbane <lyesseb@gmail.com> - 8
+- Update to ntfs-next commit 5685d5b7dc2963f7826bc187193f7825593b0497
+- Update linux-ntfs: Merge pull request #82 from hclee/wof-v4
+
+* Mon Aug 24 2026 Lyes Sebbane <lyesseb@gmail.com> - 7
+- Update to ntfs-next commit aa92f77bf8029ff1a91c6ec906c0ec08cfaa6bd1
+- Update linux-ntfs: ntfs: reject invalid empty mapping pairs
+
+* Mon Aug 24 2026 Lyes Sebbane <lyesseb@gmail.com> - 6
+- Update to ntfs-next commit 5fb0e66ddf870913b076ed983e1becda838c619f
+- Update linux-ntfs: ntfs: do not update ctime when setxattr fails
 
 * Wed Aug 19 2026 Lyes Sebbane <lyesseb@gmail.com> - 5
 - Update to ntfs-next commit cbf02ac92f191fdb6c500c32072efedc1cac3a13

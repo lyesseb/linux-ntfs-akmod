@@ -213,11 +213,11 @@ ntfs.ko après chaque mise à jour du noyau.
 
 Commit upstream :
 
-    cbf02ac92f191fdb6c500c32072efedc1cac3a13
+    4e41ce6f7a7711299e12dcb9c77533a7ab273913
 
 Commit :
 
-    ntfs: do not update ctime when setxattr fails
+    ntfs: compute bi_sector in 512-byte units
 
 Version :
 
@@ -225,11 +225,15 @@ Version :
 
 Release :
 
-    5.fc44
+    13.fc44
 
 Archive source :
 
-    SOURCES/linux-ntfs-ntfs-next-cbf02ac9.tar.gz
+    SOURCES/linux-ntfs-ntfs-next-4e41ce6f.tar.gz
+
+Patch local :
+
+    SOURCES/0001-ntfs-fix-bio-sector-callers.patch
 
 
 VALIDATION FINALE
@@ -264,7 +268,7 @@ Validation représentative sur Legion :
         kernel-devel-7.1.8-200.fc44.x86_64
 
     Paquet akmod :
-        akmod-linux-ntfs-20260807-5.fc44.x86_64
+        akmod-linux-ntfs-20260807-13.fc44.x86_64
 
     Module :
         /lib/modules/7.1.8-200.fc44.x86_64/extra/linux-ntfs/ntfs.ko.xz
