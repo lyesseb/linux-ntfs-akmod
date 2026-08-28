@@ -26,7 +26,7 @@ The project is designed so that a normal user does not need to manually compile 
 | Upstream branch | `ntfs-next` |
 | Upstream commit | `4e41ce6f7a7711299e12dcb9c77533a7ab273913` |
 | Upstream subject | `ntfs: compute bi_sector in 512-byte units` |
-| Project commit | `43b40ca` |
+| Project commit | `e5a2c5b` |
 
 ## Installation
 
@@ -125,6 +125,7 @@ It:
 - synchronizes the local `rpmbuild` tree;
 - builds the expected RPMs with `rpmbuild` when required;
 - identifies the expected AKMOD RPM deterministically from the SPEC;
+- removes an existing SRPM carrying exactly the same version-release reference before rebuilding;
 - requests installation through the systemd root helper.
 
 The user systemd units are installed by:
