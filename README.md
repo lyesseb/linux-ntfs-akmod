@@ -26,7 +26,7 @@ The project is designed so that a normal user does not need to manually compile 
 | Upstream branch | `ntfs-next` |
 | Upstream commit | `4e41ce6f7a7711299e12dcb9c77533a7ab273913` |
 | Upstream subject | `ntfs: compute bi_sector in 512-byte units` |
-| Project commit | `e5a2c5b` |
+| Project commit | `1e8152e` |
 
 ## Installation
 
@@ -194,6 +194,27 @@ findmnt -t fuseblk || true
 
 The expected filesystem type is `ntfs` and `fuseblk` should be absent for volumes mounted through this project.
 
+## Validation multi-machines
+
+The project has now been validated on four Fedora machines. The ASUS
+validation recorded on 2026-08-28 is a complete clean-installation,
+reboot and functional-mount validation on an ASUS PRIME H310M-K R2.0
+with Fedora 44 kernel `7.1.10-200.fc44.x86_64`.
+
+The ASUS scenario included:
+
+- complete project uninstallation;
+- confirmation that the Linux-NTFS packages, module and user timer were absent;
+- clean reinstallation through `tools/install-systemd-user.sh`;
+- successful AKMOD RPM build and installation through the systemd root helper;
+- reconstruction of the current kernel initramfs by the corrected installation helper;
+- reboot and automatic loading of `ntfs.ko`;
+- absence of `ntfs-3g`;
+- enabled and waiting user maintenance timer;
+- successful Dolphin/UDisks functional test with an actual `ntfs` filesystem mount, not `fuseblk`.
+
+See [`documentation/VALIDATION-MACHINES.txt`](documentation/VALIDATION-MACHINES.txt) for the detailed ASUS validation record.
+
 ## Important design rules
 
 The project intentionally keeps these responsibilities separate:
@@ -233,6 +254,7 @@ Detailed project documentation is available in:
 - [`documentation/MAINTENANCE.txt`](documentation/MAINTENANCE.txt)
 - [`documentation/ntfs-next-commit.txt`](documentation/ntfs-next-commit.txt)
 - [`documentation/packages.txt`](documentation/packages.txt)
+- [`documentation/VALIDATION-MACHINES.txt`](documentation/VALIDATION-MACHINES.txt)
 
 ## Upstream
 
