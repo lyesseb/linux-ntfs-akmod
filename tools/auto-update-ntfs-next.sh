@@ -111,6 +111,19 @@ esac
 
 echo "La branche de construction va maintenant être exécutée."
 
+# Supprime un SRPM existant portant exactement la même référence.
+remove_existing_srpm() {
+    local srpm_dir="$1"
+    local srpm_name="$2"
+    local srpm_path="$srpm_dir/$srpm_name"
+
+    if [[ -f "$srpm_path" ]]; then
+        echo "⚠ SRPM existant détecté : $srpm_path"
+        echo "→ Suppression avant reconstruction."
+        /usr/bin/rm -f -- "$srpm_path"
+    fi
+}
+
 RPMBUILD_TOPDIR="$HOME/rpmbuild"
 RPMBUILD_SPEC="$RPMBUILD_TOPDIR/SPECS/linux-ntfs-kmod.spec"
 
@@ -207,11 +220,20 @@ AKMOD_ARCH=$(
 
 AKMOD_RPM="$RPMBUILD_TOPDIR/RPMS/$AKMOD_ARCH/$AKMOD_NAME-$AKMOD_VERSION-$AKMOD_RELEASE.$AKMOD_ARCH.rpm"
 
+SRPM_NAME="${AKMOD_NAME/akmod-linux-ntfs/linux-ntfs-kmod}-${AKMOD_VERSION}-${AKMOD_RELEASE}.src.rpm"
+
 printf 'Nom      : %s\n' "$AKMOD_NAME"
 printf 'Version  : %s\n' "$AKMOD_VERSION"
 printf 'Release  : %s\n' "$AKMOD_RELEASE"
 printf 'Arch     : %s\n' "$AKMOD_ARCH"
 printf 'RPM      : %s\n' "$AKMOD_RPM"
+echo
+echo "=== NETTOYAGE SRPM DE MÊME RÉFÉRENCE ==="
+
+remove_existing_srpm     "$RPMBUILD_TOPDIR/SRPMS"     "$SRPM_NAME"
+
+echo "SRPM cible : $RPMBUILD_TOPDIR/SRPMS/$SRPM_NAME"
+
 echo
 echo "=== RPMBUILD -ba ==="
 
