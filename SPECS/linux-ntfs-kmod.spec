@@ -6,7 +6,7 @@
 Name:           %{prjname}-kmod
 Summary:        Experimental Linux NTFS kernel module
 Version:        20260807
-Release:        13%{?dist}
+Release:        14%{?dist}
 
 License:        GPL-2.0-only
 URL:            https://github.com/namjaejeon/linux-ntfs
