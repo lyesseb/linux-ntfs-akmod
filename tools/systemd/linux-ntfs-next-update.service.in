@@ -6,4 +6,9 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=@PROJECT_DIR@
+
+# Always converge the development clone to the current GitHub state
+ExecStartPre=/usr/bin/git -C @PROJECT_DIR@ fetch origin ntfs-next-latest
+ExecStartPre=/usr/bin/git -C @PROJECT_DIR@ reset --hard origin/ntfs-next-latest
+
 ExecStart=/usr/bin/bash @PROJECT_DIR@/tools/auto-update-ntfs-next.sh
