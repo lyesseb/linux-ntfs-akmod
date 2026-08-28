@@ -1,6 +1,7 @@
 [Unit]
 Description=Install the locally built linux-ntfs akmod RPM for user %i
-After=local-fs.target
+Wants=graphical.target network-online.target
+After=local-fs.target graphical.target display-manager.service network-online.target akmods.service
 
 [Service]
 Type=oneshot
