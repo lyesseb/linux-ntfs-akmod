@@ -53,7 +53,10 @@ au changement de représentation de bi_sector en secteurs de
 512 octets.
 
 Commit du projet :
-5194f61
+1e8152e
+
+Correctif d'installation :
+`fix: rebuild initramfs after akmod installation`
 
 ## STRUCTURE DU PROJET
 
@@ -86,6 +89,7 @@ documentation/
     INSTALLATION-REINSTALLATION.txt
     ntfs-next-commit.txt
     packages.txt
+    VALIDATION-MACHINES.txt
 ```
 
 ## 1. MISE À JOUR AUTOMATIQUE
@@ -294,11 +298,16 @@ Le helper :
 - identifie le KMOD générique correspondant ;
 - identifie le paquet linux-ntfs-kmod-common correspondant ;
 - transmet les trois RPM à dnf5 ;
-- ne lance pas directement akmods.
+- reconstruit l'initramfs du noyau courant après l'installation ;
+- charge ensuite le module ntfs.
 ```
 
 Le service est de type `oneshot` et est invoqué par l'orchestrateur
 après une construction réussie.
+
+La reconstruction de l'initramfs est volontairement réalisée dans le
+helper root après l'installation des RPM. Le correctif correspondant est
+`1e8152e` (`fix: rebuild initramfs after akmod installation`).
 
 ## 8. MÉCANISME AKMOD
 
@@ -457,7 +466,7 @@ Au moment de cette documentation :
 ```
 Commit ntfs-next : 4e41ce6f7a7711299e12dcb9c77533a7ab273913
 Release RPM      : 20260807-13.fc44
-Commit projet    : 5194f61
+Commit projet    : 1e8152e
 ```
 
 L'orchestrateur :
@@ -504,13 +513,91 @@ rpmbuild
         ↓
 installation systemd des RPM
         ↓
+reconstruction initramfs
+        ↓
 kmod-linux-ntfs
+        ↓
+reboot
         ↓
 Dolphin / UDisks
         ↓
 FSTYPE ntfs
         ↓
 pas de fuseblk
+```
+
+### ASUS — validation du 2026-08-28
+
+Machine : ASUS PRIME H310M-K R2.0
+
+Kernel : `7.1.10-200.fc44.x86_64`
+
+La validation ASUS a été réalisée après une désinstallation réelle
+complète puis une réinstallation propre.
+
+Avant réinstallation, les paquets Linux-NTFS, le module `ntfs` et le
+timer utilisateur étaient absents.
+
+Après réinstallation :
+
+```
+akmod-linux-ntfs-20260807-13.fc44.x86_64
+kmod-linux-ntfs-20260807-13.fc44.x86_64
+kmod-linux-ntfs-7.1.10-200.fc44.x86_64-20260807-13.fc44.x86_64
+linux-ntfs-kmod-common-20260807-13.fc44.x86_64
+```
+
+Le module était installé sous :
+
+```
+/lib/modules/7.1.10-200.fc44.x86_64/extra/linux-ntfs/ntfs.ko.xz
+```
+
+avec un `vermagic` correspondant exactement au noyau courant et une
+signature Fedora SHA-256.
+
+L'initramfs du noyau courant a été reconstruit par le helper root après
+l'installation des RPM.
+
+Après redémarrage :
+
+```
+ntfs
+```
+
+était automatiquement chargé, `ntfs-3g` était absent, l'orchestrateur
+était terminé normalement et le timer utilisateur était `enabled` et
+`active (waiting)`.
+
+Le test fonctionnel dans Dolphin a été effectué avec succès. Les volumes
+NTFS ont été utilisés via le filesystem `ntfs`, et non `fuseblk`.
+
+Cette validation confirme donc la chaîne complète :
+
+```
+désinstallation complète
+        ↓
+réinstallation
+        ↓
+rpmbuild / AKMOD
+        ↓
+installation systemd
+        ↓
+dractut / initramfs
+        ↓
+reboot
+        ↓
+chargement automatique ntfs.ko
+        ↓
+Dolphin / UDisks
+        ↓
+FSTYPE ntfs
+```
+
+Le détail de cette validation est conservé dans :
+
+```
+documentation/VALIDATION-MACHINES.txt
 ```
 
 Cette validation ne remplace pas des tests supplémentaires avec de
@@ -534,6 +621,8 @@ identification déterministe de l'AKMOD_RPM
 service systemd root
         ↓
 installation common + akmod + kmod
+        ↓
+reconstruction initramfs
         ↓
 akmods
         ↓
