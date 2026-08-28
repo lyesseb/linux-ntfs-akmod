@@ -107,6 +107,15 @@ echo
     "$KMOD_RPM"
 
 echo
+echo "Reconstruction de l'initramfs du noyau courant..."
+KERNEL="$(/usr/bin/uname -r)"
+/usr/bin/dracut --force \
+    "/boot/initramfs-${KERNEL}.img" \
+    "$KERNEL"
+
+echo "Initramfs reconstruit avec succès."
+
+echo
 echo "Chargement du module ntfs..."
 /usr/sbin/modprobe ntfs
 echo "Module ntfs chargé avec succès."

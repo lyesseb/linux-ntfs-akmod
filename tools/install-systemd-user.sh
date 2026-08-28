@@ -114,10 +114,6 @@ printf '\n%s\n' '=== INSTALLATION SYSTEMD UTILISATEUR ==='
 sudo /usr/bin/systemctl daemon-reload
 sudo /usr/bin/systemctl restart polkit.service
 
-printf '\n%s\n' '=== RECONSTRUCTION INITRAMFS ==='
-
-sudo /usr/bin/dracut --regenerate-all --force
-
 /usr/bin/systemctl --user daemon-reload
 /usr/bin/systemctl --user enable --now \
     linux-ntfs-next-update.timer
