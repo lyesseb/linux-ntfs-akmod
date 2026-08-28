@@ -1,0 +1,158 @@
+# LINUX-NTFS AKMOD — VALIDATION DES MACHINES
+
+Ce document enregistre les validations fonctionnelles réalisées avec le
+mécanisme RPM/akmod et l'orchestrateur systemd du projet.
+
+## ASUS — VALIDATION COMPLÈTE
+
+Date :
+2026-08-28
+
+Machine :
+ASUS PRIME H310M-K R2.0
+
+Distribution :
+Fedora 44
+
+Kernel validé :
+7.1.10-200.fc44.x86_64
+
+Version RPM :
+20260807
+
+Release RPM :
+13.fc44
+
+Commit du correctif d'installation :
+1e8152e — `fix: rebuild initramfs after akmod installation`
+
+### Scénario de validation
+
+La validation a été réalisée après une désinstallation réelle complète,
+suivie d'une réinstallation propre du projet.
+
+```text
+Désinstallation complète
+        ↓
+absence des paquets linux-ntfs
+        ↓
+absence du module ntfs
+        ↓
+absence du timer linux-ntfs-next-update
+        ↓
+réinstallation du projet
+        ↓
+construction du RPM AKMOD
+        ↓
+installation via linux-ntfs-akmod-install@asus.service
+        ↓
+reconstruction de l'initramfs du noyau courant
+        ↓
+chargement de ntfs.ko
+        ↓
+redémarrage complet
+        ↓
+chargement automatique de ntfs.ko après boot
+        ↓
+test fonctionnel Dolphin / UDisks
+```
+
+### Résultats avant redémarrage
+
+Paquets présents :
+
+```text
+akmod-linux-ntfs-20260807-13.fc44.x86_64
+kmod-linux-ntfs-20260807-13.fc44.x86_64
+kmod-linux-ntfs-7.1.10-200.fc44.x86_64-20260807-13.fc44.x86_64
+linux-ntfs-kmod-common-20260807-13.fc44.x86_64
+```
+
+Module :
+
+```text
+filename: /lib/modules/7.1.10-200.fc44.x86_64/extra/linux-ntfs/ntfs.ko.xz
+vermagic: 7.1.10-200.fc44.x86_64 SMP preempt mod_unload
+signer: fedora_1787200200_f058d20e
+sig_hashalgo: sha256
+```
+
+Le module était chargé avant le redémarrage et l'initramfs du noyau
+courant avait été reconstruit par l'orchestrateur.
+
+### Résultats après redémarrage
+
+Kernel :
+
+```text
+7.1.10-200.fc44.x86_64
+```
+
+Module :
+
+```text
+/lib/modules/7.1.10-200.fc44.x86_64/extra/linux-ntfs/ntfs.ko.xz
+```
+
+Le `vermagic` correspond exactement au kernel courant et le module
+`ntfs` est automatiquement chargé après le boot.
+
+`ntfs-3g` est absent :
+
+```text
+OK : ntfs-3g absent
+```
+
+L'orchestrateur système est installé et son exécution est terminée
+normalement (`inactive (dead)` après son exécution oneshot).
+
+Le timer utilisateur est :
+
+```text
+enabled
+active (waiting)
+```
+
+### Test fonctionnel
+
+Le test fonctionnel a été effectué via Dolphin.
+
+Résultat :
+
+```text
+PASS
+```
+
+Le montage NTFS utilise le filesystem `ntfs` fourni par `linux-ntfs` et
+non `fuseblk`.
+
+### Conclusion ASUS
+
+La chaîne complète est validée sur ASUS :
+
+```text
+RPM / AKMOD
+    ↓
+installation orchestrée par systemd
+    ↓
+reconstruction initramfs
+    ↓
+reboot
+    ↓
+chargement automatique ntfs.ko
+    ↓
+Dolphin / UDisks
+    ↓
+FSTYPE ntfs
+    ↓
+fonctionnement NTFS validé
+```
+
+Cette validation confirme notamment que la correction `1e8152e` fonctionne
+sur une installation propre suivie d'un redémarrage complet.
+
+## Portée
+
+Cette validation confirme le fonctionnement sur cette machine et ce
+kernel précis. Elle ne constitue pas une garantie pour tous les matériels,
+noyaux ou versions futures de Fedora.
