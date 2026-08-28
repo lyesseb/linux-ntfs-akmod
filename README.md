@@ -26,7 +26,6 @@ The project is designed so that a normal user does not need to manually compile 
 | Upstream branch | `ntfs-next` |
 | Upstream commit | `4e41ce6f7a7711299e12dcb9c77533a7ab273913` |
 | Upstream subject | `ntfs: compute bi_sector in 512-byte units` |
-| Project commit | `1e8152e` |
 
 ## Installation
 
