@@ -101,7 +101,12 @@ echo
 /usr/bin/rpm -qpl "$AKMOD_RPM" >/dev/null
 /usr/bin/rpm -qpl "$KMOD_RPM" >/dev/null
 
-exec /usr/bin/dnf5 -y install \
+/usr/bin/dnf5 -y install \
     "$COMMON_RPM" \
     "$AKMOD_RPM" \
     "$KMOD_RPM"
+
+echo
+echo "Chargement du module ntfs..."
+/usr/sbin/modprobe ntfs
+echo "Module ntfs chargé avec succès."
