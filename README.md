@@ -22,7 +22,7 @@ The project is designed so that a normal user does not need to manually compile 
 | --- | --- |
 | Fedora target | Fedora 44 |
 | RPM version | `20260807` |
-| RPM release | `13.fc44` |
+| RPM release | `14.fc44` |
 | Upstream branch | `ntfs-next` |
 | Upstream commit | `4e41ce6f7a7711299e12dcb9c77533a7ab273913` |
 | Upstream subject | `ntfs: compute bi_sector in 512-byte units` |
@@ -155,9 +155,9 @@ tools/install-dependencies.sh
 A successful build produces the common, generic KMOD and AKMOD packages, for example:
 
 ```text
-linux-ntfs-kmod-common-20260807-13.fc44.x86_64.rpm
-kmod-linux-ntfs-20260807-13.fc44.x86_64.rpm
-akmod-linux-ntfs-20260807-13.fc44.x86_64.rpm
+linux-ntfs-kmod-common-20260807-14.fc44.x86_64.rpm
+kmod-linux-ntfs-20260807-14.fc44.x86_64.rpm
+akmod-linux-ntfs-20260807-14.fc44.x86_64.rpm
 ```
 
 For a specific installed kernel, the corresponding kernel KMOD package is produced and installed by the normal Fedora akmods workflow.
