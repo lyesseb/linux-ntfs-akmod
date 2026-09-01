@@ -22,10 +22,10 @@ The project is designed so that a normal user does not need to manually compile 
 | --- | --- |
 | Fedora target | Fedora 44 |
 | RPM version | `20260807` |
-| RPM release | `14.fc44` |
+| RPM release | `15.fc44` |
 | Upstream branch | `ntfs-next` |
-| Upstream commit | `4e41ce6f7a7711299e12dcb9c77533a7ab273913` |
-| Upstream subject | `ntfs: compute bi_sector in 512-byte units` |
+| Upstream commit | `966a441855f5896b1b8ff7ed89f6c6191a0d4a53` |
+| Upstream subject | `ntfs: fix race between fallocate and mmap reads` |
 
 ## Installation
 
@@ -148,6 +148,14 @@ The dependency bootstrap is:
 ```text
 tools/install-dependencies.sh
 ```
+
+### **Update robustness**
+
+Preparation of the `ntfs-next` source archive is idempotent: an existing
+stale target archive no longer prevents a new update attempt. The update
+mechanism prepares the archive in a temporary location before installing it,
+so a retry after a failed update can start cleanly without being blocked by
+a residual artifact.
 
 ## Package layout
 
