@@ -204,71 +204,87 @@ printf '%s\n' '=== VERSION LINUX-NTFS / NTFS-NEXT ==='
 printf '%s\n' '========================================'
 
 # ------------------------------------------------------------------------------
-# Récupération du commit réellement utilisé par l'AKMOD
-# depuis le dernier journal du service NTFS-NEXT.
+# Récupération du commit réellement embarqué dans l'AKMOD installé.
+#
+# Le journal du service d'automatisation ne constitue PAS une source fiable
+# pour cette information : auto-update-ntfs-next.sh ne journalise pas
+# "Commit AKMOD" ni "Commit attendu".
+#
+# Le RPM AKMOD contient en revanche dans son changelog la ligne générée
+# par le SPEC :
+#
+#   Update to ntfs-next commit <SHA>
+#
+# C'est donc le paquet réellement installé qui fait foi.
 # ------------------------------------------------------------------------------
-
-NTFS_SERVICE_LOG="$(
-    /usr/bin/journalctl \
-        --user \
-        -u linux-ntfs-next-update.service \
-        -n 100 \
-        --no-pager 2>/dev/null || true
-)"
 
 INSTALLED_COMMIT="$(
-    printf '%s\n' "$NTFS_SERVICE_LOG" \
-        | /usr/bin/grep 'Commit AKMOD' \
-        | /usr/bin/tail -n 1 \
-        | /usr/bin/sed -E 's/.*Commit AKMOD[[:space:]]*:[[:space:]]*([0-9a-f]{40}).*/\1/'
-)"
-
-EXPECTED_COMMIT="$(
-    printf '%s\n' "$NTFS_SERVICE_LOG" \
-        | /usr/bin/grep 'Commit attendu' \
-        | /usr/bin/tail -n 1 \
-        | /usr/bin/sed -E 's/.*Commit attendu[[:space:]]*:[[:space:]]*([0-9a-f]{40}).*/\1/'
+    /usr/bin/rpm -q --changelog akmod-linux-ntfs 2>/dev/null \
+        | /usr/bin/grep -m 1 -E \
+            'Update to ntfs-next commit [0-9a-f]{40}' \
+        | /usr/bin/sed -E \
+            's/.*Update to ntfs-next commit ([0-9a-f]{40}).*/\1/' \
+        || true
 )"
 
 # ------------------------------------------------------------------------------
-# Dernier commit actuellement présent sur la branche ntfs-next upstream.
+# Le commit réellement installé est notre référence locale.
+# La comparaison avec le véritable commit attendu se fait ensuite
+# directement avec le commit actuellement présent sur upstream ntfs-next.
 # ------------------------------------------------------------------------------
 
-UPSTREAM_API='https://api.github.com/repos/namjaejeon/linux-ntfs/commits/ntfs-next'
+EXPECTED_COMMIT="$INSTALLED_COMMIT"
 
-UPSTREAM_JSON="$(
-    /usr/bin/curl \
-        --fail \
-        --silent \
-        --show-error \
-        --location \
-        --connect-timeout 10 \
-        --max-time 30 \
-        "$UPSTREAM_API" 2>/dev/null || true
-)"
+# ------------------------------------------------------------------------------
+# Récupération du dernier commit réellement présent sur upstream ntfs-next.
+#
+# git ls-remote interroge directement la référence distante :
+#
+#   refs/heads/ntfs-next
+#
+# Le SHA retourné est donc la source de vérité pour l'état actuel de la branche.
+# ------------------------------------------------------------------------------
 
 UPSTREAM_COMMIT="$(
-    printf '%s\n' "$UPSTREAM_JSON" \
-        | /usr/bin/grep '"sha":' \
-        | /usr/bin/head -n 1 \
-        | /usr/bin/sed -E 's/.*"sha":[[:space:]]*"([^"]+)".*/\1/'
+    /usr/bin/git ls-remote         "https://github.com/namjaejeon/linux-ntfs.git"         "refs/heads/ntfs-next" 2>/dev/null         | /usr/bin/awk '{print $1}'         | /usr/bin/head -n 1         || true
 )"
 
-UPSTREAM_SUBJECT="$(
-    printf '%s\n' "$UPSTREAM_JSON" \
-        | /usr/bin/grep '"message":' \
-        | /usr/bin/head -n 1 \
-        | /usr/bin/sed -E 's/.*"message":[[:space:]]*"([^"]*)".*/\1/' \
-        | /usr/bin/sed 's/\\n.*//'
-)"
+# ------------------------------------------------------------------------------
+# Les informations descriptives du commit (intitulé/date) restent facultatives.
+# Elles ne participent PAS à la détermination du SHA.
+# ------------------------------------------------------------------------------
 
-UPSTREAM_DATE="$(
-    printf '%s\n' "$UPSTREAM_JSON" \
-        | /usr/bin/grep '"date":' \
-        | /usr/bin/head -n 1 \
-        | /usr/bin/sed -E 's/.*"date":[[:space:]]*"([^"]+)".*/\1/'
-)"
+UPSTREAM_SUBJECT=""
+UPSTREAM_DATE=""
 
+if [[ "$UPSTREAM_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+    UPSTREAM_COMMIT_JSON="$(
+        /usr/bin/curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --connect-timeout 10 \
+            --max-time 30 \
+            "https://api.github.com/repos/namjaejeon/linux-ntfs/commits/${UPSTREAM_COMMIT}" \
+            2>/dev/null || true
+    )"
+
+    UPSTREAM_SUBJECT="$(
+        printf '%s\n' "$UPSTREAM_COMMIT_JSON" \
+            | /usr/bin/grep '"message":' \
+            | /usr/bin/head -n 1 \
+            | /usr/bin/sed -E 's/.*"message":[[:space:]]*"([^"]*)".*/\1/' \
+            | /usr/bin/sed 's/\\n.*//'
+    )"
+
+    UPSTREAM_DATE="$(
+        printf '%s\n' "$UPSTREAM_COMMIT_JSON" \
+            | /usr/bin/grep '"date":' \
+            | /usr/bin/head -n 1 \
+            | /usr/bin/sed -E 's/.*"date":[[:space:]]*"([^"]+)".*/\1/'
+    )"
+fi
 
 printf '%s\n' '=== COMMIT INSTALLÉ ==='
 printf '%s\n' '========================================'
@@ -281,7 +297,7 @@ fi
 
 printf '%s\n' 'Intitulé :'
 
-if [[ -n "$INSTALLED_COMMIT" ]]; then
+if [[ "$INSTALLED_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
     INSTALLED_COMMIT_JSON="$(
         /usr/bin/curl \
             --fail \
