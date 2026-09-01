@@ -1,8 +1,10 @@
-# linux-ntfs-akmod
+# Linux NTFS kernel driver for Fedora — AKMOD/KMOD packaging
 
-Fedora RPM/akmod packaging and maintenance automation for the experimental **linux-ntfs** kernel driver from Namjae Jeon, using the `ntfs-next` development branch.
+**Fedora 44 and later** packaging, kernel-module integration and maintenance automation for the **linux-ntfs** NTFS filesystem driver developed by **Namjae Jeon**, tracking the upstream `ntfs-next` development branch.
 
-> **Status:** experimental project. The package tracks the upstream `ntfs-next` development branch and is intended for testing and use on Fedora 44 systems. It is independent of the desktop environment and integrates with the standard Fedora storage stack (`udisks2`).
+This project packages the **Linux NTFS kernel driver** as Fedora RPM/AKMOD/KMOD packages and provides automatic kernel-module maintenance through **akmods**. It builds and maintains `ntfs.ko` for Fedora kernels and integrates with the standard Fedora storage stack (`udisks2`).
+
+> **Status:** experimental project for Fedora 44 and later. This repository packages and automates the upstream `linux-ntfs` driver; it is not the upstream driver repository itself. It is independent of the desktop environment and is specifically designed to provide native `ntfs` filesystem support rather than `ntfs-3g`/FUSE or the separate in-kernel `ntfs3` filesystem.
 
 ## What this project provides
 
