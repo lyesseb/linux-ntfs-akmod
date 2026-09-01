@@ -8,76 +8,136 @@ set -euo pipefail
 
 REPO="https://github.com/namjaejeon/linux-ntfs.git"
 BRANCH="ntfs-next"
-
-LOCAL_TZ="$(/usr/bin/timedatectl show --property=Timezone --value 2>/dev/null || true)"
-
-if [ -z "$LOCAL_TZ" ]; then
-    LOCAL_TZ="UTC"
-fi
-
-export LOCAL_TZ
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-cd "$PROJECT"
+API_REPO="https://api.github.com/repos/namjaejeon/linux-ntfs"
+LOCAL_TZ="Africa/Algiers"
 
 #######################################
-# Commit installé
+# Commit réellement installé
 #######################################
 
-CURRENT=$(head -n 1 documentation/ntfs-next-commit.txt)
+CURRENT="$(
+    /usr/bin/rpm -q --changelog akmod-linux-ntfs 2>/dev/null \
+        | /usr/bin/grep -m 1 -E \
+            'Update to ntfs-next commit [0-9a-f]{40}' \
+        | /usr/bin/sed -E \
+            's/.*Update to ntfs-next commit ([0-9a-f]{40}).*/\1/' \
+        || true
+)"
 
-CURRENT_INFO=$(git show -s --format='%ci|%s' "$CURRENT" 2>/dev/null)
-
-if [ -z "$CURRENT_INFO" ]; then
-    echo "❌ Impossible de trouver le commit installé : $CURRENT"
+if [[ ! "$CURRENT" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "❌ Impossible de déterminer le commit réellement installé dans akmod-linux-ntfs"
     exit 1
 fi
 
-CURRENT_DATE_RAW="${CURRENT_INFO%%|*}"
-CURRENT_TITLE="${CURRENT_INFO#*|}"
+#######################################
+# Informations du commit installé
+#######################################
 
-CURRENT_DATE=$(date -d "$CURRENT_DATE_RAW" \
-    +"%Y-%m-%d %H:%M:%S %Z")
+CURRENT_INFO="$(
+    /usr/bin/curl \
+        --fail \
+        --silent \
+        --show-error \
+        --location \
+        --connect-timeout 10 \
+        --max-time 30 \
+        "$API_REPO/commits/$CURRENT" \
+        2>/dev/null \
+        | /usr/bin/python3 -c '
+import json
+import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+d = json.load(sys.stdin)
+
+date = datetime.fromisoformat(
+    d["commit"]["author"]["date"].replace("Z", "+00:00")
+)
+
+date = date.astimezone(ZoneInfo("Africa/Algiers"))
+
+title = d["commit"]["message"].splitlines()[0]
+
+print(
+    date.strftime("%Y-%m-%d %H:%M:%S %Z")
+    + "|"
+    + title
+)
+' \
+        || true
+)"
+
+if [ -z "$CURRENT_INFO" ]; then
+    echo "❌ Impossible de récupérer les informations du commit installé : $CURRENT"
+    exit 1
+fi
+
+CURRENT_DATE="${CURRENT_INFO%%|*}"
+CURRENT_TITLE="${CURRENT_INFO#*|}"
 
 #######################################
 # Commit upstream
 #######################################
 
-UPSTREAM=$(git ls-remote "$REPO" "refs/heads/$BRANCH" | awk '{print $1}')
+UPSTREAM="$(
+    /usr/bin/git ls-remote \
+        "$REPO" \
+        "refs/heads/$BRANCH" \
+        2>/dev/null \
+        | /usr/bin/awk '{print $1}' \
+        | /usr/bin/head -n 1 \
+        || true
+)"
 
-if [ -z "$UPSTREAM" ]; then
+if [[ ! "$UPSTREAM" =~ ^[0-9a-f]{40}$ ]]; then
     echo "❌ Impossible de récupérer le commit upstream"
     exit 1
 fi
 
+#######################################
+# Informations du commit upstream
+#######################################
 
-UPSTREAM_INFO=$(curl -fsSL \
-"https://api.github.com/repos/namjaejeon/linux-ntfs/commits/$UPSTREAM" |
-python3 -c '
+UPSTREAM_INFO="$(
+    /usr/bin/curl \
+        --fail \
+        --silent \
+        --show-error \
+        --location \
+        --connect-timeout 10 \
+        --max-time 30 \
+        "$API_REPO/commits/$UPSTREAM" \
+        2>/dev/null \
+        | /usr/bin/python3 -c '
 import json
-import os
 import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-d=json.load(sys.stdin)
+d = json.load(sys.stdin)
 
-date=datetime.fromisoformat(
-    d["commit"]["author"]["date"].replace("Z","+00:00")
+date = datetime.fromisoformat(
+    d["commit"]["author"]["date"].replace("Z", "+00:00")
 )
 
-date=date.astimezone(ZoneInfo(os.environ.get("LOCAL_TZ", "UTC")))
+date = date.astimezone(ZoneInfo("Africa/Algiers"))
 
-title=d["commit"]["message"].splitlines()[0]
+title = d["commit"]["message"].splitlines()[0]
 
 print(
     date.strftime("%Y-%m-%d %H:%M:%S %Z")
-    +"|"+title
+    + "|"
+    + title
 )
-')
+' \
+        || true
+)"
 
+if [ -z "$UPSTREAM_INFO" ]; then
+    echo "❌ Impossible de récupérer les informations du commit upstream : $UPSTREAM"
+    exit 1
+fi
 
 UPSTREAM_DATE="${UPSTREAM_INFO%%|*}"
 UPSTREAM_TITLE="${UPSTREAM_INFO#*|}"
@@ -117,16 +177,30 @@ if [ "$CURRENT" = "$UPSTREAM" ]; then
 
 else
 
-    COUNT=$(curl -fsSL \
-"https://api.github.com/repos/namjaejeon/linux-ntfs/compare/$CURRENT...$UPSTREAM" |
-python3 -c '
+    COUNT="$(
+        /usr/bin/curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --connect-timeout 10 \
+            --max-time 30 \
+            "$API_REPO/compare/$CURRENT...$UPSTREAM" \
+            2>/dev/null \
+            | /usr/bin/python3 -c '
 import json
 import sys
 
 d = json.load(sys.stdin)
-
 print(d["total_commits"])
-')
+' \
+            || true
+    )"
+
+    if ! [[ "$COUNT" =~ ^[0-9]+$ ]]; then
+        echo "❌ Impossible de déterminer le nombre de nouveaux commits"
+        exit 1
+    fi
 
     echo "⚠ Nouveau commit disponible"
     echo
