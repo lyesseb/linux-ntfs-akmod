@@ -100,6 +100,8 @@ NTFS volumes can then be mounted normally from Dolphin/UDisks without adding NTF
 
 The validated result is an actual `ntfs` mount, not `fuseblk` and not the in-kernel `ntfs3` filesystem.
 
+NTFS partitions can also be mounted automatically at boot through `/etc/fstab` once the `linux-ntfs` AKMOD/KMOD mechanism is installed and the module is available for the running kernel.
+
 ## Automatic maintenance
 
 The main orchestrator is:
@@ -233,7 +235,6 @@ Do not reintroduce:
 - date-based discovery of the RPM produced by `rpmbuild`;
 - permanent manual compilation of `ntfs.ko` after every kernel update;
 - direct `akmods` execution from the user update service;
-- NTFS mount entries in `/etc/fstab` as a workaround for graphical mounting;
 - `ntfs-3g` as the handler for the `ntfs` filesystem type.
 
 ## Documentation
