@@ -16,17 +16,6 @@ Fedora RPM/akmod packaging and maintenance automation for the experimental **lin
 
 The project is designed so that a normal user does not need to manually compile `ntfs.ko` after every kernel update.
 
-## Current reference
-
-| Item | Current value |
-| --- | --- |
-| Fedora target | Fedora 44 |
-| RPM version | `20260807` |
-| RPM release | `15.fc44` |
-| Upstream branch | `ntfs-next` |
-| Upstream commit | `966a441855f5896b1b8ff7ed89f6c6191a0d4a53` |
-| Upstream subject | `ntfs: fix race between fallocate and mmap reads` |
-
 ## Installation
 
 Clone the repository and run the single installation entry point as the target user:
@@ -162,9 +151,9 @@ a residual artifact.
 A successful build produces the common, generic KMOD and AKMOD packages, for example:
 
 ```text
-linux-ntfs-kmod-common-20260807-14.fc44.x86_64.rpm
-kmod-linux-ntfs-20260807-14.fc44.x86_64.rpm
-akmod-linux-ntfs-20260807-14.fc44.x86_64.rpm
+linux-ntfs-kmod-common-<version>-<release>.<disttag>.x86_64.rpm
+kmod-linux-ntfs-<version>-<release>.<disttag>.x86_64.rpm
+akmod-linux-ntfs-<version>-<release>.<disttag>.x86_64.rpm
 ```
 
 For a specific installed kernel, the corresponding kernel KMOD package is produced and installed by the normal Fedora akmods workflow.
@@ -201,26 +190,17 @@ findmnt -t fuseblk || true
 
 The expected filesystem type is `ntfs` and `fuseblk` should be absent for volumes mounted through this project.
 
-## Validation multi-machines
+## Validation
 
-The project has now been validated on four Fedora machines. The ASUS
-validation recorded on 2026-08-28 is a complete clean-installation,
-reboot and functional-mount validation on an ASUS PRIME H310M-K R2.0
-with Fedora 44 kernel `7.1.10-200.fc44.x86_64`.
+The project has been validated on multiple Fedora systems.
 
-The ASUS scenario included:
+Validation records include clean installation and reinstallation scenarios,
+AKMOD/KMOD installation, kernel-module loading after reboot, automatic
+maintenance through the systemd user timer, and functional NTFS mounting
+through Dolphin/UDisks using the `ntfs` filesystem.
 
-- complete project uninstallation;
-- confirmation that the Linux-NTFS packages, module and user timer were absent;
-- clean reinstallation through `tools/install-systemd-user.sh`;
-- successful AKMOD RPM build and installation through the systemd root helper;
-- reconstruction of the current kernel initramfs by the corrected installation helper;
-- reboot and automatic loading of `ntfs.ko`;
-- absence of `ntfs-3g`;
-- enabled and waiting user maintenance timer;
-- successful Dolphin/UDisks functional test with an actual `ntfs` filesystem mount, not `fuseblk`.
-
-See [`documentation/VALIDATION-MACHINES.txt`](documentation/VALIDATION-MACHINES.txt) for the detailed ASUS validation record.
+See [`documentation/VALIDATION-MACHINES.txt`](documentation/VALIDATION-MACHINES.txt)
+for the detailed validation records.
 
 ## Important design rules
 
