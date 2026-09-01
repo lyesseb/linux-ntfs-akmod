@@ -6,13 +6,12 @@
 Name:           %{prjname}-kmod
 Summary:        Experimental Linux NTFS kernel module
 Version:        20260807
-Release:        14%{?dist}
+Release:        15%{?dist}
 
 License:        GPL-2.0-only
 URL:            https://github.com/namjaejeon/linux-ntfs
 
-Source0:        linux-ntfs-ntfs-next-4e41ce6f.tar.gz
-Patch0:         0001-ntfs-fix-bio-sector-callers.patch
+Source0:        linux-ntfs-ntfs-next-966a4418.tar.gz
 
 ExclusiveArch:  x86_64 aarch64
 
@@ -66,7 +65,6 @@ kmodtool \
     2>/dev/null
 
 %setup -q -n linux-ntfs
-%patch -P 0 -p1
 
 for kernel_version in %{?kernel_versions}; do
     mkdir ../_kmod_build_${kernel_version%%___*}
@@ -94,6 +92,10 @@ done
 %{?akmod_install}
 
 %changelog
+
+* Tue Sep 01 2026 Lyes Sebbane <lyesseb@gmail.com> - 15
+- Update to ntfs-next commit 966a441855f5896b1b8ff7ed89f6c6191a0d4a53
+- Update linux-ntfs: ntfs: fix race between fallocate and mmap reads
 
 * Thu Aug 27 2026 Lyes Sebbane <lyesseb@gmail.com> - 13
 - Update to ntfs-next commit 4e41ce6f7a7711299e12dcb9c77533a7ab273913

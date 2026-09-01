@@ -1,3 +1,3 @@
-4e41ce6f7a7711299e12dcb9c77533a7ab273913
-2026-08-27 03:23:39 +0100
-ntfs: compute bi_sector in 512-byte units
+966a441855f5896b1b8ff7ed89f6c6191a0d4a53
+2026-08-31 06:08:21 +0100
+ntfs: fix race between fallocate and mmap reads

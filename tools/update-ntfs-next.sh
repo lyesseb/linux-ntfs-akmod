@@ -250,12 +250,6 @@ echo
 ARCHIVE_NAME="linux-ntfs-ntfs-next-$SHORT.tar.gz"
 ARCHIVE="$SOURCES/$ARCHIVE_NAME"
 
-if [ -e "$ARCHIVE" ]; then
-    echo "ERREUR : l'archive cible existe déjà :"
-    echo "$ARCHIVE"
-    exit 1
-fi
-
 TMP_DIR="$(/usr/bin/mktemp -d)"
 
 TMP_ARCHIVE="$TMP_DIR/$ARCHIVE_NAME"
