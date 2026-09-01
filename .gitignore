@@ -1,0 +1,15 @@
+# RPM build trees
+/BUILD/
+/BUILDROOT/
+/RPMS/
+/SRPMS/
+
+# Locally generated RPM/SRPM artifact directories
+/RPMS-*/
+/SRPMS-*/
+
+# Locally generated ntfs-next source archives
+/SOURCES/*.tar.gz
+
+# Local build/update logs
+/logs/
