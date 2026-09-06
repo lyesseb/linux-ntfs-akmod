@@ -6,12 +6,12 @@
 Name:           %{prjname}-kmod
 Summary:        Experimental Linux NTFS kernel module
 Version:        20260807
-Release:        15%{?dist}
+Release:        17%{?dist}
 
 License:        GPL-2.0-only
 URL:            https://github.com/namjaejeon/linux-ntfs
 
-Source0:        linux-ntfs-ntfs-next-966a4418.tar.gz
+Source0:        linux-ntfs-ntfs-next-3574401b.tar.gz
 
 ExclusiveArch:  x86_64 aarch64
 
@@ -92,6 +92,10 @@ done
 %{?akmod_install}
 
 %changelog
+
+* Sun Sep 06 2026 Lyes Sebbane <lyesseb@gmail.com> - 17
+- Update to ntfs-next commit 3574401bf211625569072a6d5ffacda95c0d2994
+- Update linux-ntfs: ntfs: protect runlist updates with the runlist lock
 
 * Tue Sep 01 2026 Lyes Sebbane <lyesseb@gmail.com> - 15
 - Update to ntfs-next commit 966a441855f5896b1b8ff7ed89f6c6191a0d4a53

@@ -1,3 +1,3 @@
-966a441855f5896b1b8ff7ed89f6c6191a0d4a53
-2026-08-31 06:08:21 +0100
-ntfs: fix race between fallocate and mmap reads
+3574401bf211625569072a6d5ffacda95c0d2994
+2026-09-06 13:44:36 +0100
+ntfs: protect runlist updates with the runlist lock

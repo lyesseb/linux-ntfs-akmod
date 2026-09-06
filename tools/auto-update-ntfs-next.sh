@@ -264,6 +264,20 @@ echo "RPM : $AKMOD_RPM"
 echo
 echo "✓ Le RPM akmod a été construit avec succès."
 
+if [[ "${SKIP_INSTALL:-0}" == "1" ]]; then
+    echo
+    echo "============================================================"
+    echo "MODE CONSTRUCTION SEULE — INSTALLATION IGNORÉE"
+    echo "============================================================"
+    echo
+    echo "✓ RPM AKMOD construit et conservé."
+    echo "✓ Aucun service d'installation lancé."
+    echo "✓ Aucun paquet installé ou supprimé."
+    echo "✓ AKMOD actuellement installé inchangé."
+    echo
+    exit 0
+fi
+
 REQUESTING_USER=$(/usr/bin/id -un)
 
 echo

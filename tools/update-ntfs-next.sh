@@ -24,11 +24,30 @@ fi
 export LOCAL_TZ
 
 VERSION="$(/usr/bin/rpmspec -q --qf '%{VERSION}\n' "$SPEC" | /usr/bin/head -n 1)"
-CURRENT_RELEASE="$(
+SPEC_RELEASE="$(
     /usr/bin/rpmspec -q --qf '%{RELEASE}\n' "$SPEC" |
     /usr/bin/head -n 1 |
     /usr/bin/cut -d. -f1
 )"
+
+INSTALLED_RELEASE="0"
+if /usr/bin/rpm -q akmod-linux-ntfs >/dev/null 2>&1; then
+    INSTALLED_RELEASE="$(
+        /usr/bin/rpm -q --qf '%{RELEASE}\n' akmod-linux-ntfs |
+        /usr/bin/head -n 1 |
+        /usr/bin/cut -d. -f1
+    )"
+fi
+
+CURRENT_RELEASE="$SPEC_RELEASE"
+
+if (( INSTALLED_RELEASE > CURRENT_RELEASE )); then
+    CURRENT_RELEASE="$INSTALLED_RELEASE"
+fi
+
+echo "Release SPEC         : $SPEC_RELEASE"
+echo "Release AKMOD installé : $INSTALLED_RELEASE"
+echo "Release de référence : $CURRENT_RELEASE"
 
 #######################################
 # Nettoyage
@@ -175,9 +194,31 @@ echo
 #######################################
 
 if [ "$CURRENT" = "$UPSTREAM" ]; then
-    echo "✓ Aucun nouveau commit upstream."
-    echo "✓ Aucun fichier modifié."
-    exit 0
+
+    INSTALLED_COMMIT="$(
+        /usr/bin/rpm -q --changelog akmod-linux-ntfs 2>/dev/null |
+        /usr/bin/grep -m 1 -E             'Update to ntfs-next commit [0-9a-f]{40}' |
+        /usr/bin/sed -E             's/.*Update to ntfs-next commit ([0-9a-f]{40}).*/\1/'         || true
+    )"
+
+    echo
+    echo "Commit documenté : $CURRENT"
+    echo "Commit upstream  : $UPSTREAM"
+    echo "Commit installé  : ${INSTALLED_COMMIT:-NON DÉTERMINÉ}"
+
+    if [[ "$INSTALLED_COMMIT" == "$UPSTREAM" ]]; then
+        echo
+        echo "✓ Le commit ntfs-next est déjà installé."
+        echo "✓ Aucun fichier modifié."
+        exit 0
+    fi
+
+    echo
+    echo "⚠ Le commit upstream est déjà documenté dans le dépôt,"
+    echo "  mais l'AKMOD installé correspond à un autre commit."
+    echo
+    echo "→ Une nouvelle construction est nécessaire."
+    echo
 fi
 
 echo "⚠ Nouveau commit détecté : $SHORT"

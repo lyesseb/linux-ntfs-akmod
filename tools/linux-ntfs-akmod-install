@@ -97,6 +97,88 @@ echo "AKMOD sélectionné     : $AKMOD_RPM"
 echo "KMOD sélectionné      : $KMOD_RPM"
 echo
 
+echo "=== VÉRIFICATION D'IDENTITÉ DU RPM CANDIDAT ==="
+
+CANDIDATE_COMMIT="$(
+    /usr/bin/rpm -qp --changelog "$AKMOD_RPM" 2>/dev/null |
+    /usr/bin/grep -m 1 -E \
+        'Update to ntfs-next commit [0-9a-f]{40}' |
+    /usr/bin/sed -E \
+        's/.*Update to ntfs-next commit ([0-9a-f]{40}).*/\1/' \
+    || true
+)"
+
+INSTALLED_COMMIT=""
+INSTALLED_VERSION_RELEASE=""
+
+if /usr/bin/rpm -q akmod-linux-ntfs >/dev/null 2>&1; then
+    INSTALLED_COMMIT="$(
+        /usr/bin/rpm -q --changelog akmod-linux-ntfs 2>/dev/null |
+        /usr/bin/grep -m 1 -E \
+            'Update to ntfs-next commit [0-9a-f]{40}' |
+        /usr/bin/sed -E \
+            's/.*Update to ntfs-next commit ([0-9a-f]{40}).*/\1/' \
+        || true
+    )"
+
+    INSTALLED_VERSION_RELEASE="$(
+        /usr/bin/rpm -q --qf '%{VERSION}-%{RELEASE}\n' \
+            akmod-linux-ntfs
+    )"
+fi
+
+echo "Commit candidat       : ${CANDIDATE_COMMIT:-NON DÉTERMINÉ}"
+echo "Commit installé       : ${INSTALLED_COMMIT:-AUCUN}"
+echo "Version-release cand. : $AKMOD_VERSION_RELEASE"
+echo "Version-release inst. : ${INSTALLED_VERSION_RELEASE:-AUCUNE}"
+echo
+
+if [[ -z "$CANDIDATE_COMMIT" ]]; then
+    echo "ERREUR : impossible de déterminer le commit ntfs-next"
+    echo "du RPM candidat." >&2
+    echo "Installation refusée." >&2
+    exit 1
+fi
+
+if [[ -n "$INSTALLED_VERSION_RELEASE" ]]; then
+
+    if [[ "$AKMOD_VERSION_RELEASE" == "$INSTALLED_VERSION_RELEASE" ]]; then
+
+        if [[ "$CANDIDATE_COMMIT" == "$INSTALLED_COMMIT" ]]; then
+            echo "✓ Même NEVRA et même commit : candidat déjà installé."
+            echo "✓ Aucune réinstallation nécessaire."
+
+            KERNEL="$(/usr/bin/uname -r)"
+
+            if /usr/bin/modinfo -k "$KERNEL" ntfs >/dev/null 2>&1; then
+                echo "✓ Module ntfs disponible pour $KERNEL."
+                exit 0
+            fi
+
+            echo "ERREUR : module ntfs indisponible pour $KERNEL." >&2
+            exit 1
+        fi
+
+        echo "============================================================" >&2
+        echo "ERREUR FATALE : COLLISION NEVRA / COMMIT" >&2
+        echo "============================================================" >&2
+        echo >&2
+        echo "Le RPM candidat possède exactement le même"
+        echo "Version-Release que le RPM installé, mais correspond"
+        echo "à un commit ntfs-next différent." >&2
+        echo >&2
+        echo "Candidat : $AKMOD_VERSION_RELEASE → $CANDIDATE_COMMIT" >&2
+        echo "Installé : $INSTALLED_VERSION_RELEASE → $INSTALLED_COMMIT" >&2
+        echo >&2
+        echo "Installation REFUSÉE." >&2
+        echo "Le paquet actuellement installé est conservé." >&2
+        exit 1
+    fi
+fi
+
+echo "✓ Aucune collision NEVRA / commit détectée."
+echo
+
 /usr/bin/rpm -qpl "$COMMON_RPM" >/dev/null
 /usr/bin/rpm -qpl "$AKMOD_RPM" >/dev/null
 /usr/bin/rpm -qpl "$KMOD_RPM" >/dev/null
