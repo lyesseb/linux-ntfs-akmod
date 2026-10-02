@@ -1,203 +1,29 @@
-#!/usr/bin/env bash
-
+#!/usr/bin/bash
 set -Eeuo pipefail
-
-USER_NAME="${1:-}"
-
-if [[ -z "$USER_NAME" ]]; then
-    echo "ERREUR : utilisateur absent." >&2
-    exit 2
-fi
-
-if [[ "$USER_NAME" == *[!a-zA-Z0-9_.-]* ]]; then
-    echo "ERREUR : nom utilisateur invalide." >&2
-    exit 2
-fi
-
-USER_ENTRY="$(getent passwd "$USER_NAME" || true)"
-
-if [[ -z "$USER_ENTRY" ]]; then
-    echo "ERREUR : utilisateur inconnu : $USER_NAME" >&2
-    exit 1
-fi
-
-USER_HOME="$(printf '%s\n' "$USER_ENTRY" | cut -d: -f6)"
-
-if [[ -z "$USER_HOME" || ! -d "$USER_HOME" ]]; then
-    echo "ERREUR : répertoire personnel introuvable." >&2
-    exit 1
-fi
-
-RPM_ARCH="$(/usr/bin/rpm --eval '%{_arch}')"
-RPM_DIR="$USER_HOME/rpmbuild/RPMS/$RPM_ARCH"
-
-if [[ ! -d "$RPM_DIR" ]]; then
-    echo "ERREUR : répertoire RPM introuvable : $RPM_DIR" >&2
-    exit 1
-fi
-
-AKMOD_RPM="$(
-    /usr/bin/find "$RPM_DIR" \
-        -maxdepth 1 \
-        -type f \
-        -name 'akmod-linux-ntfs-*.rpm' \
-        -user "$USER_NAME" \
-        -printf '%T@ %p\n' |
-    /usr/bin/sort -nr |
-    /usr/bin/head -n 1 |
-    /usr/bin/cut -d' ' -f2-
-)"
-
-if [[ -z "$AKMOD_RPM" || ! -f "$AKMOD_RPM" ]]; then
-    echo "ERREUR : aucun RPM akmod-linux-ntfs trouvé." >&2
-    exit 1
-fi
-
-AKMOD_VERSION_RELEASE="$(
-    /usr/bin/rpm -qp \
-        --qf '%{VERSION}-%{RELEASE}' \
-        "$AKMOD_RPM"
-)"
-
-KMOD_RPM="$(
-    /usr/bin/find "$RPM_DIR" \
-        -maxdepth 1 \
-        -type f \
-        -name "kmod-linux-ntfs-${AKMOD_VERSION_RELEASE}.${RPM_ARCH}.rpm" \
-        -user "$USER_NAME" \
-        -print -quit
-)"
-
-if [[ -z "$KMOD_RPM" || ! -f "$KMOD_RPM" ]]; then
-    echo "ERREUR : KMOD correspondant introuvable pour AKMOD ${AKMOD_VERSION_RELEASE}." >&2
-    echo "AKMOD : $AKMOD_RPM" >&2
-    exit 1
-fi
-
-COMMON_RPM="$(
-    /usr/bin/find "$RPM_DIR" \
-        -maxdepth 1 \
-        -type f \
-        -name "linux-ntfs-kmod-common-${AKMOD_VERSION_RELEASE}.${RPM_ARCH}.rpm" \
-        -user "$USER_NAME" \
-        -print -quit
-)"
-
-if [[ -z "$COMMON_RPM" || ! -f "$COMMON_RPM" ]]; then
-    echo "ERREUR : paquet common correspondant introuvable pour AKMOD ${AKMOD_VERSION_RELEASE}." >&2
-    echo "AKMOD : $AKMOD_RPM" >&2
-    exit 1
-fi
-
-echo "Utilisateur demandeur : $USER_NAME"
-echo "Architecture RPM      : $RPM_ARCH"
-echo "Version-release       : $AKMOD_VERSION_RELEASE"
-echo "Common sélectionné    : $COMMON_RPM"
-echo "AKMOD sélectionné     : $AKMOD_RPM"
-echo "KMOD sélectionné      : $KMOD_RPM"
-echo
-
-echo "=== VÉRIFICATION D'IDENTITÉ DU RPM CANDIDAT ==="
-
-CANDIDATE_COMMIT="$(
-    /usr/bin/rpm -qp --changelog "$AKMOD_RPM" 2>/dev/null |
-    /usr/bin/grep -m 1 -E \
-        'Update to ntfs-next commit [0-9a-f]{40}' |
-    /usr/bin/sed -E \
-        's/.*Update to ntfs-next commit ([0-9a-f]{40}).*/\1/' \
-    || true
-)"
-
-INSTALLED_COMMIT=""
-INSTALLED_VERSION_RELEASE=""
-
-if /usr/bin/rpm -q akmod-linux-ntfs >/dev/null 2>&1; then
-    INSTALLED_COMMIT="$(
-        /usr/bin/rpm -q --changelog akmod-linux-ntfs 2>/dev/null |
-        /usr/bin/grep -m 1 -E \
-            'Update to ntfs-next commit [0-9a-f]{40}' |
-        /usr/bin/sed -E \
-            's/.*Update to ntfs-next commit ([0-9a-f]{40}).*/\1/' \
-        || true
-    )"
-
-    INSTALLED_VERSION_RELEASE="$(
-        /usr/bin/rpm -q --qf '%{VERSION}-%{RELEASE}\n' \
-            akmod-linux-ntfs
-    )"
-fi
-
-echo "Commit candidat       : ${CANDIDATE_COMMIT:-NON DÉTERMINÉ}"
-echo "Commit installé       : ${INSTALLED_COMMIT:-AUCUN}"
-echo "Version-release cand. : $AKMOD_VERSION_RELEASE"
-echo "Version-release inst. : ${INSTALLED_VERSION_RELEASE:-AUCUNE}"
-echo
-
-if [[ -z "$CANDIDATE_COMMIT" ]]; then
-    echo "ERREUR : impossible de déterminer le commit ntfs-next"
-    echo "du RPM candidat." >&2
-    echo "Installation refusée." >&2
-    exit 1
-fi
-
-if [[ -n "$INSTALLED_VERSION_RELEASE" ]]; then
-
-    if [[ "$AKMOD_VERSION_RELEASE" == "$INSTALLED_VERSION_RELEASE" ]]; then
-
-        if [[ "$CANDIDATE_COMMIT" == "$INSTALLED_COMMIT" ]]; then
-            echo "✓ Même NEVRA et même commit : candidat déjà installé."
-            echo "✓ Aucune réinstallation nécessaire."
-
-            KERNEL="$(/usr/bin/uname -r)"
-
-            if /usr/bin/modinfo -k "$KERNEL" ntfs >/dev/null 2>&1; then
-                echo "✓ Module ntfs disponible pour $KERNEL."
-                exit 0
-            fi
-
-            echo "ERREUR : module ntfs indisponible pour $KERNEL." >&2
-            exit 1
-        fi
-
-        echo "============================================================" >&2
-        echo "ERREUR FATALE : COLLISION NEVRA / COMMIT" >&2
-        echo "============================================================" >&2
-        echo >&2
-        echo "Le RPM candidat possède exactement le même"
-        echo "Version-Release que le RPM installé, mais correspond"
-        echo "à un commit ntfs-next différent." >&2
-        echo >&2
-        echo "Candidat : $AKMOD_VERSION_RELEASE → $CANDIDATE_COMMIT" >&2
-        echo "Installé : $INSTALLED_VERSION_RELEASE → $INSTALLED_COMMIT" >&2
-        echo >&2
-        echo "Installation REFUSÉE." >&2
-        echo "Le paquet actuellement installé est conservé." >&2
-        exit 1
-    fi
-fi
-
-echo "✓ Aucune collision NEVRA / commit détectée."
-echo
-
-/usr/bin/rpm -qpl "$COMMON_RPM" >/dev/null
-/usr/bin/rpm -qpl "$AKMOD_RPM" >/dev/null
-/usr/bin/rpm -qpl "$KMOD_RPM" >/dev/null
-
-/usr/bin/dnf5 -y install \
-    "$COMMON_RPM" \
-    "$AKMOD_RPM" \
-    "$KMOD_RPM"
-
-echo
-echo "Reconstruction de l'initramfs du noyau courant..."
-KERNEL="$(/usr/bin/uname -r)"
-/usr/bin/dracut --force \
-    "/boot/initramfs-${KERNEL}.img" \
-    "$KERNEL"
-
-echo "Initramfs reconstruit avec succès."
-
-echo
-echo "Chargement du module ntfs..."
-/usr/sbin/modprobe ntfs
-echo "Module ntfs chargé avec succès."
+die(){ echo "ERREUR : $*" >&2; exit 1; }
+USER_NAME="${1:-}"; [[ -n "$USER_NAME" ]] || die "nom utilisateur manquant"; [[ "$USER_NAME" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] || die "nom utilisateur invalide"
+IFS=: read -r ACCOUNT_NAME _ USER_UID USER_GID _ USER_HOME _ < <(/usr/bin/getent passwd "$USER_NAME"); [[ "$ACCOUNT_NAME" == "$USER_NAME" ]] || die "compte incohérent"; [[ -d "$USER_HOME" ]] || die "home introuvable"
+REQUEST_DIR=/run/linux-ntfs-akmod; REQUEST_FILE="$REQUEST_DIR/install-$USER_NAME.env"
+[[ -d "$REQUEST_DIR" ]] || die "répertoire absent"; [[ -f "$REQUEST_FILE" && ! -L "$REQUEST_FILE" ]] || die "transaction absente/invalide"
+[[ "$(/usr/bin/stat -c '%u:%g:%a' "$REQUEST_FILE")" == "$USER_UID:$USER_GID:600" ]] || die "propriétaire/permissions transaction incorrects"
+mapfile -t LINES < "$REQUEST_FILE"; [[ "${#LINES[@]}" -eq 2 ]] || die "transaction invalide"
+TARGET_AKMOD_RPM=""; EXPECTED_COMMIT=""
+for LINE in "${LINES[@]}"; do case "$LINE" in TARGET_AKMOD_RPM=*) [[ -z "$TARGET_AKMOD_RPM" ]] || die "TARGET dupliqué"; TARGET_AKMOD_RPM="${LINE#TARGET_AKMOD_RPM=}";; EXPECTED_COMMIT=*) [[ -z "$EXPECTED_COMMIT" ]] || die "COMMIT dupliqué"; EXPECTED_COMMIT="${LINE#EXPECTED_COMMIT=}";; *) die "ligne inconnue";; esac; done
+[[ "$TARGET_AKMOD_RPM" == /* && "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "transaction invalide"
+RPM_ARCH="$(/usr/bin/rpm --eval '%{_arch}')"; RPM_DIR="$USER_HOME/rpmbuild/RPMS/$RPM_ARCH"
+case "$TARGET_AKMOD_RPM" in "$RPM_DIR"/*) ;; *) die "RPM hors répertoire autorisé";; esac
+[[ -f "$TARGET_AKMOD_RPM" && ! -L "$TARGET_AKMOD_RPM" ]] || die "RPM candidat invalide"; [[ "$(/usr/bin/readlink -f "$TARGET_AKMOD_RPM")" == "$TARGET_AKMOD_RPM" ]] || die "RPM non canonique"; [[ "$(/usr/bin/stat -c '%u:%g' "$TARGET_AKMOD_RPM")" == "$USER_UID:$USER_GID" ]] || die "RPM non possédé"
+CANDIDATE_NAME="$(/usr/bin/rpm -qp --qf '%{NAME}' "$TARGET_AKMOD_RPM")"; CANDIDATE_VERSION="$(/usr/bin/rpm -qp --qf '%{VERSION}' "$TARGET_AKMOD_RPM")"; CANDIDATE_RELEASE="$(/usr/bin/rpm -qp --qf '%{RELEASE}' "$TARGET_AKMOD_RPM")"; CANDIDATE_ARCH="$(/usr/bin/rpm -qp --qf '%{ARCH}' "$TARGET_AKMOD_RPM")"
+[[ "$CANDIDATE_NAME" == akmod-linux-ntfs && "$CANDIDATE_ARCH" == "$RPM_ARCH" ]] || die "identité AKMOD incorrecte"
+CANDIDATE_COMMIT="$(/usr/bin/rpm -qp --changelog "$TARGET_AKMOD_RPM" 2>/dev/null | /usr/bin/grep -m1 -Eo 'Update to ntfs-next commit [0-9a-f]{40}' | /usr/bin/grep -Eo '[0-9a-f]{40}' | /usr/bin/head -n1 || true)"
+[[ "$CANDIDATE_COMMIT" == "$EXPECTED_COMMIT" ]] || die "SHA candidat différent"
+AKMOD_VERSION_RELEASE="$CANDIDATE_VERSION-$CANDIDATE_RELEASE"; KMOD_RPM="$RPM_DIR/kmod-linux-ntfs-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH.rpm"; COMMON_RPM="$RPM_DIR/linux-ntfs-kmod-common-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH.rpm"
+for f in "$KMOD_RPM" "$COMMON_RPM"; do [[ -f "$f" && ! -L "$f" ]] || die "compagnon absent"; [[ "$(/usr/bin/stat -c '%u:%g' "$f")" == "$USER_UID:$USER_GID" ]] || die "compagnon non possédé"; done
+[[ "$(/usr/bin/rpm -qp --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' "$KMOD_RPM")" == "kmod-linux-ntfs-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH" ]] || die "KMOD incohérent"
+[[ "$(/usr/bin/rpm -qp --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' "$COMMON_RPM")" == "linux-ntfs-kmod-common-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH" ]] || die "common incohérent"
+INSTALLED_NEVA=""; INSTALLED_COMMIT=""; if /usr/bin/rpm -q akmod-linux-ntfs >/dev/null 2>&1; then INSTALLED_VERSION="$(/usr/bin/rpm -q --qf '%{VERSION}' akmod-linux-ntfs)"; INSTALLED_RELEASE="$(/usr/bin/rpm -q --qf '%{RELEASE}' akmod-linux-ntfs)"; INSTALLED_ARCH="$(/usr/bin/rpm -q --qf '%{ARCH}' akmod-linux-ntfs)"; INSTALLED_NEVA="$INSTALLED_VERSION-$INSTALLED_RELEASE.$INSTALLED_ARCH"; INSTALLED_COMMIT="$(/usr/bin/rpm -q --changelog akmod-linux-ntfs 2>/dev/null | /usr/bin/grep -m1 -Eo 'Update to ntfs-next commit [0-9a-f]{40}' | /usr/bin/grep -Eo '[0-9a-f]{40}' | /usr/bin/head -n1 || true)"; fi
+CANDIDATE_NEVA="$CANDIDATE_VERSION-$CANDIDATE_RELEASE.$CANDIDATE_ARCH"; [[ "$INSTALLED_NEVA" != "$CANDIDATE_NEVA" || "$INSTALLED_COMMIT" == "$EXPECTED_COMMIT" ]] || die "collision NEVRA avec SHA différent"
+/usr/bin/dnf5 -y install --allow-downgrade "$COMMON_RPM" "$TARGET_AKMOD_RPM" "$KMOD_RPM"
+/usr/bin/dracut --force --kver "$(/usr/bin/uname -r)"
+/usr/bin/modprobe ntfs
+/usr/bin/rm -f -- "$REQUEST_FILE"
