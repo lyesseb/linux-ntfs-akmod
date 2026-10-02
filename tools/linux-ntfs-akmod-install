@@ -1,29 +1,296 @@
 #!/usr/bin/bash
+
 set -Eeuo pipefail
-die(){ echo "ERREUR : $*" >&2; exit 1; }
-USER_NAME="${1:-}"; [[ -n "$USER_NAME" ]] || die "nom utilisateur manquant"; [[ "$USER_NAME" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]] || die "nom utilisateur invalide"
-IFS=: read -r ACCOUNT_NAME _ USER_UID USER_GID _ USER_HOME _ < <(/usr/bin/getent passwd "$USER_NAME"); [[ "$ACCOUNT_NAME" == "$USER_NAME" ]] || die "compte incohérent"; [[ -d "$USER_HOME" ]] || die "home introuvable"
-REQUEST_DIR=/run/linux-ntfs-akmod; REQUEST_FILE="$REQUEST_DIR/install-$USER_NAME.env"
-[[ -d "$REQUEST_DIR" ]] || die "répertoire absent"; [[ -f "$REQUEST_FILE" && ! -L "$REQUEST_FILE" ]] || die "transaction absente/invalide"
-[[ "$(/usr/bin/stat -c '%u:%g:%a' "$REQUEST_FILE")" == "$USER_UID:$USER_GID:600" ]] || die "propriétaire/permissions transaction incorrects"
-mapfile -t LINES < "$REQUEST_FILE"; [[ "${#LINES[@]}" -eq 2 ]] || die "transaction invalide"
-TARGET_AKMOD_RPM=""; EXPECTED_COMMIT=""
-for LINE in "${LINES[@]}"; do case "$LINE" in TARGET_AKMOD_RPM=*) [[ -z "$TARGET_AKMOD_RPM" ]] || die "TARGET dupliqué"; TARGET_AKMOD_RPM="${LINE#TARGET_AKMOD_RPM=}";; EXPECTED_COMMIT=*) [[ -z "$EXPECTED_COMMIT" ]] || die "COMMIT dupliqué"; EXPECTED_COMMIT="${LINE#EXPECTED_COMMIT=}";; *) die "ligne inconnue";; esac; done
-[[ "$TARGET_AKMOD_RPM" == /* && "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]] || die "transaction invalide"
-RPM_ARCH="$(/usr/bin/rpm --eval '%{_arch}')"; RPM_DIR="$USER_HOME/rpmbuild/RPMS/$RPM_ARCH"
-case "$TARGET_AKMOD_RPM" in "$RPM_DIR"/*) ;; *) die "RPM hors répertoire autorisé";; esac
-[[ -f "$TARGET_AKMOD_RPM" && ! -L "$TARGET_AKMOD_RPM" ]] || die "RPM candidat invalide"; [[ "$(/usr/bin/readlink -f "$TARGET_AKMOD_RPM")" == "$TARGET_AKMOD_RPM" ]] || die "RPM non canonique"; [[ "$(/usr/bin/stat -c '%u:%g' "$TARGET_AKMOD_RPM")" == "$USER_UID:$USER_GID" ]] || die "RPM non possédé"
-CANDIDATE_NAME="$(/usr/bin/rpm -qp --qf '%{NAME}' "$TARGET_AKMOD_RPM")"; CANDIDATE_VERSION="$(/usr/bin/rpm -qp --qf '%{VERSION}' "$TARGET_AKMOD_RPM")"; CANDIDATE_RELEASE="$(/usr/bin/rpm -qp --qf '%{RELEASE}' "$TARGET_AKMOD_RPM")"; CANDIDATE_ARCH="$(/usr/bin/rpm -qp --qf '%{ARCH}' "$TARGET_AKMOD_RPM")"
-[[ "$CANDIDATE_NAME" == akmod-linux-ntfs && "$CANDIDATE_ARCH" == "$RPM_ARCH" ]] || die "identité AKMOD incorrecte"
-CANDIDATE_COMMIT="$(/usr/bin/rpm -qp --changelog "$TARGET_AKMOD_RPM" 2>/dev/null | /usr/bin/grep -m1 -Eo 'Update to ntfs-next commit [0-9a-f]{40}' | /usr/bin/grep -Eo '[0-9a-f]{40}' | /usr/bin/head -n1 || true)"
-[[ "$CANDIDATE_COMMIT" == "$EXPECTED_COMMIT" ]] || die "SHA candidat différent"
-AKMOD_VERSION_RELEASE="$CANDIDATE_VERSION-$CANDIDATE_RELEASE"; KMOD_RPM="$RPM_DIR/kmod-linux-ntfs-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH.rpm"; COMMON_RPM="$RPM_DIR/linux-ntfs-kmod-common-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH.rpm"
-for f in "$KMOD_RPM" "$COMMON_RPM"; do [[ -f "$f" && ! -L "$f" ]] || die "compagnon absent"; [[ "$(/usr/bin/stat -c '%u:%g' "$f")" == "$USER_UID:$USER_GID" ]] || die "compagnon non possédé"; done
-[[ "$(/usr/bin/rpm -qp --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' "$KMOD_RPM")" == "kmod-linux-ntfs-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH" ]] || die "KMOD incohérent"
-[[ "$(/usr/bin/rpm -qp --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' "$COMMON_RPM")" == "linux-ntfs-kmod-common-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH" ]] || die "common incohérent"
-INSTALLED_NEVA=""; INSTALLED_COMMIT=""; if /usr/bin/rpm -q akmod-linux-ntfs >/dev/null 2>&1; then INSTALLED_VERSION="$(/usr/bin/rpm -q --qf '%{VERSION}' akmod-linux-ntfs)"; INSTALLED_RELEASE="$(/usr/bin/rpm -q --qf '%{RELEASE}' akmod-linux-ntfs)"; INSTALLED_ARCH="$(/usr/bin/rpm -q --qf '%{ARCH}' akmod-linux-ntfs)"; INSTALLED_NEVA="$INSTALLED_VERSION-$INSTALLED_RELEASE.$INSTALLED_ARCH"; INSTALLED_COMMIT="$(/usr/bin/rpm -q --changelog akmod-linux-ntfs 2>/dev/null | /usr/bin/grep -m1 -Eo 'Update to ntfs-next commit [0-9a-f]{40}' | /usr/bin/grep -Eo '[0-9a-f]{40}' | /usr/bin/head -n1 || true)"; fi
-CANDIDATE_NEVA="$CANDIDATE_VERSION-$CANDIDATE_RELEASE.$CANDIDATE_ARCH"; [[ "$INSTALLED_NEVA" != "$CANDIDATE_NEVA" || "$INSTALLED_COMMIT" == "$EXPECTED_COMMIT" ]] || die "collision NEVRA avec SHA différent"
-/usr/bin/dnf5 -y install --allow-downgrade "$COMMON_RPM" "$TARGET_AKMOD_RPM" "$KMOD_RPM"
-/usr/bin/dracut --force --kver "$(/usr/bin/uname -r)"
+
+die()
+{
+    echo "ERREUR : $*" >&2
+    exit 1
+}
+
+###############################################################################
+# 1. Instance systemd = seul paramètre dynamique
+###############################################################################
+
+USER_NAME="${1:-}"
+
+[[ -n "$USER_NAME" ]] ||
+    die "nom utilisateur manquant"
+
+[[ "$USER_NAME" =~ ^[a-z_][a-z0-9_-]*$ ]] ||
+    die "nom utilisateur invalide"
+
+###############################################################################
+# 2. Résolution du compte
+###############################################################################
+
+IFS=: read -r \
+    ACCOUNT_NAME \
+    _ \
+    USER_UID \
+    USER_GID \
+    _ \
+    USER_HOME \
+    _ < <(/usr/bin/getent passwd "$USER_NAME")
+
+[[ "$ACCOUNT_NAME" == "$USER_NAME" ]] ||
+    die "compte incohérent"
+
+[[ "$USER_HOME" == /* && -d "$USER_HOME" ]] ||
+    die "home introuvable"
+
+###############################################################################
+# 3. Transaction
+###############################################################################
+
+REQUEST_DIR="/run/linux-ntfs-akmod"
+REQUEST_FILE="$REQUEST_DIR/install-$USER_NAME.env"
+
+[[ -d "$REQUEST_DIR" ]] ||
+    die "répertoire transaction absent"
+
+[[ -f "$REQUEST_FILE" && ! -L "$REQUEST_FILE" ]] ||
+    die "transaction absente ou invalide"
+
+REQUEST_STAT="$(
+    /usr/bin/stat -c '%u:%g:%a' "$REQUEST_FILE"
+)"
+
+[[ "$REQUEST_STAT" == "$USER_UID:$USER_GID:600" ]] ||
+    die "propriétaire ou permissions transaction incorrects"
+
+###############################################################################
+# 4. Lecture non exécutée du fichier transaction
+#
+#    IMPORTANT :
+#    jamais de "source", jamais d'eval.
+###############################################################################
+
+mapfile -t LINES < "$REQUEST_FILE"
+
+[[ "${#LINES[@]}" -eq 2 ]] ||
+    die "transaction invalide : nombre de lignes incorrect"
+
+TARGET_AKMOD_RPM=""
+EXPECTED_COMMIT=""
+
+for LINE in "${LINES[@]}"; do
+    case "$LINE" in
+
+        TARGET_AKMOD_RPM=*)
+            [[ -z "$TARGET_AKMOD_RPM" ]] ||
+                die "TARGET_AKMOD_RPM dupliqué"
+
+            TARGET_AKMOD_RPM="${LINE#TARGET_AKMOD_RPM=}"
+            ;;
+
+        EXPECTED_COMMIT=*)
+            [[ -z "$EXPECTED_COMMIT" ]] ||
+                die "EXPECTED_COMMIT dupliqué"
+
+            EXPECTED_COMMIT="${LINE#EXPECTED_COMMIT=}"
+            ;;
+
+        *)
+            die "variable transaction inconnue"
+            ;;
+
+    esac
+done
+
+[[ -n "$TARGET_AKMOD_RPM" ]] ||
+    die "TARGET_AKMOD_RPM absent"
+
+[[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]] ||
+    die "EXPECTED_COMMIT invalide"
+
+[[ "$TARGET_AKMOD_RPM" == /* ]] ||
+    die "TARGET_AKMOD_RPM non absolu"
+
+###############################################################################
+# 5. Répertoire RPM autorisé
+###############################################################################
+
+RPM_ARCH="$(/usr/bin/rpm --eval '%{_arch}')"
+RPM_DIR="$USER_HOME/rpmbuild/RPMS/$RPM_ARCH"
+
+case "$TARGET_AKMOD_RPM" in
+    "$RPM_DIR"/*)
+        ;;
+    *)
+        die "RPM hors du répertoire rpmbuild autorisé"
+        ;;
+esac
+
+###############################################################################
+# 6. Validation du RPM AKMOD
+###############################################################################
+
+[[ -f "$TARGET_AKMOD_RPM" && ! -L "$TARGET_AKMOD_RPM" ]] ||
+    die "RPM candidat absent ou invalide"
+
+[[ "$(/usr/bin/readlink -f "$TARGET_AKMOD_RPM")" == "$TARGET_AKMOD_RPM" ]] ||
+    die "RPM candidat non canonique"
+
+[[ "$(/usr/bin/stat -c '%u:%g' "$TARGET_AKMOD_RPM")" == "$USER_UID:$USER_GID" ]] ||
+    die "RPM candidat non possédé par le demandeur"
+
+CANDIDATE_NAME="$(
+    /usr/bin/rpm -qp --qf '%{NAME}' "$TARGET_AKMOD_RPM"
+)"
+
+CANDIDATE_VERSION="$(
+    /usr/bin/rpm -qp --qf '%{VERSION}' "$TARGET_AKMOD_RPM"
+)"
+
+CANDIDATE_RELEASE="$(
+    /usr/bin/rpm -qp --qf '%{RELEASE}' "$TARGET_AKMOD_RPM"
+)"
+
+CANDIDATE_ARCH="$(
+    /usr/bin/rpm -qp --qf '%{ARCH}' "$TARGET_AKMOD_RPM"
+)"
+
+[[ "$CANDIDATE_NAME" == "akmod-linux-ntfs" ]] ||
+    die "nom AKMOD incorrect"
+
+[[ "$CANDIDATE_ARCH" == "$RPM_ARCH" ]] ||
+    die "architecture AKMOD incorrecte"
+
+###############################################################################
+# 7. SHA exact du RPM
+###############################################################################
+
+CANDIDATE_COMMIT="$(
+    /usr/bin/rpm -qp --changelog "$TARGET_AKMOD_RPM" 2>/dev/null |
+    /usr/bin/grep -m1 -Eo \
+        'Update to ntfs-next commit [0-9a-f]{40}' |
+    /usr/bin/grep -Eo '[0-9a-f]{40}' |
+    /usr/bin/head -n1 ||
+    true
+)"
+
+[[ "$CANDIDATE_COMMIT" == "$EXPECTED_COMMIT" ]] ||
+    die "SHA du RPM candidat différent de la transaction"
+
+###############################################################################
+# 8. Compagnons exacts
+###############################################################################
+
+AKMOD_VERSION_RELEASE="$CANDIDATE_VERSION-$CANDIDATE_RELEASE"
+
+KMOD_RPM="$RPM_DIR/kmod-linux-ntfs-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH.rpm"
+COMMON_RPM="$RPM_DIR/linux-ntfs-kmod-common-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH.rpm"
+
+for f in "$KMOD_RPM" "$COMMON_RPM"; do
+
+    [[ -f "$f" && ! -L "$f" ]] ||
+        die "RPM compagnon absent ou invalide : $f"
+
+    [[ "$(/usr/bin/stat -c '%u:%g' "$f")" == "$USER_UID:$USER_GID" ]] ||
+        die "RPM compagnon non possédé par le demandeur : $f"
+
+done
+
+EXPECTED_KMOD_NEVRA="kmod-linux-ntfs-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH"
+EXPECTED_COMMON_NEVRA="linux-ntfs-kmod-common-$AKMOD_VERSION_RELEASE.$CANDIDATE_ARCH"
+
+ACTUAL_KMOD_NEVRA="$(
+    /usr/bin/rpm -qp \
+        --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' \
+        "$KMOD_RPM"
+)"
+
+ACTUAL_COMMON_NEVRA="$(
+    /usr/bin/rpm -qp \
+        --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' \
+        "$COMMON_RPM"
+)"
+
+[[ "$ACTUAL_KMOD_NEVRA" == "$EXPECTED_KMOD_NEVRA" ]] ||
+    die "KMOD incohérent"
+
+[[ "$ACTUAL_COMMON_NEVRA" == "$EXPECTED_COMMON_NEVRA" ]] ||
+    die "linux-ntfs-kmod-common incohérent"
+
+###############################################################################
+# 9. Collision NEVRA / SHA
+#
+#    Même NEVRA + SHA différent = refus.
+###############################################################################
+
+INSTALLED_NEVA=""
+INSTALLED_COMMIT=""
+
+if /usr/bin/rpm -q akmod-linux-ntfs >/dev/null 2>&1; then
+
+    INSTALLED_VERSION="$(
+        /usr/bin/rpm -q --qf '%{VERSION}' akmod-linux-ntfs
+    )"
+
+    INSTALLED_RELEASE="$(
+        /usr/bin/rpm -q --qf '%{RELEASE}' akmod-linux-ntfs
+    )"
+
+    INSTALLED_ARCH="$(
+        /usr/bin/rpm -q --qf '%{ARCH}' akmod-linux-ntfs
+    )"
+
+    INSTALLED_NEVA="$INSTALLED_VERSION-$INSTALLED_RELEASE.$INSTALLED_ARCH"
+
+    INSTALLED_COMMIT="$(
+        /usr/bin/rpm -q --changelog akmod-linux-ntfs 2>/dev/null |
+        /usr/bin/grep -m1 -Eo \
+            'Update to ntfs-next commit [0-9a-f]{40}' |
+        /usr/bin/grep -Eo '[0-9a-f]{40}' |
+        /usr/bin/head -n1 ||
+        true
+    )"
+fi
+
+CANDIDATE_NEVA="$CANDIDATE_VERSION-$CANDIDATE_RELEASE.$CANDIDATE_ARCH"
+
+if [[ "$INSTALLED_NEVA" == "$CANDIDATE_NEVA" &&
+      "$INSTALLED_COMMIT" != "$EXPECTED_COMMIT" ]]; then
+
+    die "collision NEVRA avec SHA différent"
+fi
+
+###############################################################################
+# 10. Installation exacte
+#
+#     --allow-downgrade est volontaire :
+#     le SHA upstream est la vérité et upstream peut être rebased.
+###############################################################################
+
+/usr/bin/dnf5 \
+    -y \
+    install \
+    --allow-downgrade \
+    "$COMMON_RPM" \
+    "$TARGET_AKMOD_RPM" \
+    "$KMOD_RPM"
+
+###############################################################################
+# 11. Régénération initramfs du kernel courant
+###############################################################################
+
+CURRENT_KERNEL="$(/usr/bin/uname -r)"
+
+/usr/bin/dracut \
+    --force \
+    --kver "$CURRENT_KERNEL"
+
+###############################################################################
+# 12. Vérification du module
+###############################################################################
+
 /usr/bin/modprobe ntfs
+
+###############################################################################
+# 13. Suppression de la transaction UNIQUEMENT après succès complet
+###############################################################################
+
 /usr/bin/rm -f -- "$REQUEST_FILE"
+
+echo "[OK] Transaction linux-ntfs-akmod terminee pour $USER_NAME."
