@@ -142,8 +142,23 @@ SOURCE_NAME="$(
     /usr/bin/awk '$1 == "Source0:" { print $2; exit }'
 )"
 
-[[ -n "$SOURCE_NAME" && -f "$PROJECT/SOURCES/$SOURCE_NAME" ]] ||
-    die "Archive Source0 introuvable : $PROJECT/SOURCES/${SOURCE_NAME:-VIDE}"
+[[ -n "$SOURCE_NAME" ]] || die "Nom de Source0 introuvable dans le SPEC"
+
+# Recherche intelligente du tarball dans le projet, dans rpmbuild/SOURCES ou dans ~/Developpement/sources
+LOCAL_SOURCE_PATH=""
+for candidate in \
+    "$PROJECT/SOURCES/$SOURCE_NAME" \
+    "$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME" \
+    "$HOME/Developpement/sources/$SOURCE_NAME"
+do
+    if [[ -f "$candidate" ]]; then
+        LOCAL_SOURCE_PATH="$candidate"
+        break
+    fi
+done
+
+[[ -n "$LOCAL_SOURCE_PATH" && -f "$LOCAL_SOURCE_PATH" ]] ||
+    die "Archive Source0 introuvable : $SOURCE_NAME"
 
 /usr/bin/mkdir -p \
     "$RPMBUILD_TOPDIR/BUILD" \
@@ -155,13 +170,12 @@ SOURCE_NAME="$(
 
 # Synchronisation indispensable des sources et du SPEC vers rpmbuild
 /usr/bin/cp -f "$SPEC_FILE" "$RPMBUILD_SPEC"
-/usr/bin/cp -f "$PROJECT/SOURCES/$SOURCE_NAME" "$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME"
+/usr/bin/cp -f "$LOCAL_SOURCE_PATH" "$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME"
 
 /usr/bin/rpmbuild \
     -ba \
     "$RPMBUILD_SPEC" \
     --define "_topdir $RPMBUILD_TOPDIR"
-
 ###############################################################################
 # 8. Détermination exacte des trois RPM attendus
 ###############################################################################
