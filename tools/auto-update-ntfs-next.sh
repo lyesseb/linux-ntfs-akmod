@@ -128,16 +128,38 @@ AKMOD_VERSION_RELEASE="$AKMOD_VERSION-$AKMOD_RELEASE"
 echo "AKMOD attendu : $AKMOD_VERSION_RELEASE.$AKMOD_ARCH"
 
 ###############################################################################
-# 7. Construction
+# 7. Construction et synchronisation rpmbuild
 #
 #    Si rpmbuild échoue, aucun paquet installé n'est touché.
 ###############################################################################
 
 RPMBUILD_TOPDIR="$HOME/rpmbuild"
+RPMBUILD_SPEC="$RPMBUILD_TOPDIR/SPECS/linux-ntfs-kmod.spec"
+
+# Extraction dynamique du nom de l'archive Source0 depuis le SPEC préparé
+SOURCE_NAME="$(
+    /usr/bin/rpmspec -P "$SPEC_FILE" |
+    /usr/bin/awk '$1 == "Source0:" { print $2; exit }'
+)"
+
+[[ -n "$SOURCE_NAME" && -f "$PROJECT/SOURCES/$SOURCE_NAME" ]] ||
+    die "Archive Source0 introuvable : $PROJECT/SOURCES/${SOURCE_NAME:-VIDE}"
+
+/usr/bin/mkdir -p \
+    "$RPMBUILD_TOPDIR/BUILD" \
+    "$RPMBUILD_TOPDIR/BUILDROOT" \
+    "$RPMBUILD_TOPDIR/RPMS" \
+    "$RPMBUILD_TOPDIR/SOURCES" \
+    "$RPMBUILD_TOPDIR/SPECS" \
+    "$RPMBUILD_TOPDIR/SRPMS"
+
+# Synchronisation indispensable des sources et du SPEC vers rpmbuild
+/usr/bin/cp -f "$SPEC_FILE" "$RPMBUILD_SPEC"
+/usr/bin/cp -f "$PROJECT/SOURCES/$SOURCE_NAME" "$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME"
 
 /usr/bin/rpmbuild \
     -ba \
-    "$SPEC_FILE" \
+    "$RPMBUILD_SPEC" \
     --define "_topdir $RPMBUILD_TOPDIR"
 
 ###############################################################################
