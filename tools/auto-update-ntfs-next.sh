@@ -144,12 +144,13 @@ SOURCE_NAME="$(
 
 [[ -n "$SOURCE_NAME" ]] || die "Nom de Source0 introuvable dans le SPEC"
 
-# Recherche intelligente du tarball dans le projet, dans rpmbuild/SOURCES ou dans ~/Developpement/sources
+# Emplacements potentiels de l'archive source
 LOCAL_SOURCE_PATH=""
 for candidate in \
     "$PROJECT/SOURCES/$SOURCE_NAME" \
     "$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME" \
-    "$HOME/Developpement/sources/$SOURCE_NAME"
+    "$HOME/Developpement/sources/$SOURCE_NAME" \
+    "$PWD/$SOURCE_NAME"
 do
     if [[ -f "$candidate" ]]; then
         LOCAL_SOURCE_PATH="$candidate"
@@ -157,8 +158,15 @@ do
     fi
 done
 
+# Si l'archive n'est pas trouvée, on cherche n'importe quel tarball récent dans les dossiers sources
+if [[ -z "$LOCAL_SOURCE_PATH" ]]; then
+    LOCAL_SOURCE_PATH="$(ls -t "$PROJECT/SOURCES/"*.tar.gz "$HOME/Developpement/sources/"*.tar.gz "$RPMBUILD_TOPDIR/SOURCES/"*.tar.gz 2>/dev/null | head -n 1 || true)"
+fi
+
 [[ -n "$LOCAL_SOURCE_PATH" && -f "$LOCAL_SOURCE_PATH" ]] ||
-    die "Archive Source0 introuvable : $SOURCE_NAME"
+    die "Archive source introuvable pour : $SOURCE_NAME"
+
+TARBALL_BASENAME="$(basename "$LOCAL_SOURCE_PATH")"
 
 /usr/bin/mkdir -p \
     "$RPMBUILD_TOPDIR/BUILD" \
@@ -170,12 +178,18 @@ done
 
 # Synchronisation indispensable des sources et du SPEC vers rpmbuild
 /usr/bin/cp -f "$SPEC_FILE" "$RPMBUILD_SPEC"
-/usr/bin/cp -f "$LOCAL_SOURCE_PATH" "$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME"
+/usr/bin/cp -f "$LOCAL_SOURCE_PATH" "$RPMBUILD_TOPDIR/SOURCES/$TARBALL_BASENAME"
+
+# Si le nom dans le SPEC diffère du fichier trouvé, on met à jour Source0 dans le SPEC de rpmbuild si besoin
+if [[ "$TARBALL_BASENAME" != "$SOURCE_NAME" ]]; then
+    sed -i "s|Source0:.*|Source0:        $TARBALL_BASENAME|" "$RPMBUILD_SPEC"
+fi
 
 /usr/bin/rpmbuild \
     -ba \
     "$RPMBUILD_SPEC" \
     --define "_topdir $RPMBUILD_TOPDIR"
+
 ###############################################################################
 # 8. Détermination exacte des trois RPM attendus
 ###############################################################################
