@@ -6,12 +6,12 @@
 Name:           %{prjname}-kmod
 Summary:        Experimental Linux NTFS kernel module
 Version:        20260807
-Release:        17%{?dist}
+Release:        53%{?dist}
 
 License:        GPL-2.0-only
 URL:            https://github.com/namjaejeon/linux-ntfs
 
-Source0:        linux-ntfs-ntfs-next-3574401b.tar.gz
+Source0:        linux-ntfs-ntfs-next-ea6b11ae.tar.gz
 
 ExclusiveArch:  x86_64 aarch64
 
@@ -92,6 +92,22 @@ done
 %{?akmod_install}
 
 %changelog
+
+* Mon Oct 19 2026 Lyes Sebbane <lyesseb@gmail.com> - 53
+- Update to ntfs-next commit ea6b11ae2b421fc5defa6f96ed136ab09a60e936
+- Update linux-ntfs: Merge pull request #90 from hclee/port/4kn
+
+* Mon Oct 19 2026 Lyes Sebbane <lyesseb@gmail.com> - 52
+- Update to ntfs-next commit ea6b11ae2b421fc5defa6f96ed136ab09a60e936
+- Update linux-ntfs: Merge pull request #90 from hclee/port/4kn
+
+* Mon Oct 19 2026 Lyes Sebbane <lyesseb@gmail.com> - 51
+- Update to ntfs-next commit ea6b11ae2b421fc5defa6f96ed136ab09a60e936
+- Update linux-ntfs: Merge pull request #90 from hclee/port/4kn
+
+* Mon Oct 19 2026 Lyes Sebbane <lyesseb@gmail.com> - 50
+- Update to ntfs-next commit ea6b11ae2b421fc5defa6f96ed136ab09a60e936
+- Update linux-ntfs: Merge pull request #90 from hclee/port/4kn
 
 * Sun Sep 06 2026 Lyes Sebbane <lyesseb@gmail.com> - 17
 - Update to ntfs-next commit 3574401bf211625569072a6d5ffacda95c0d2994
