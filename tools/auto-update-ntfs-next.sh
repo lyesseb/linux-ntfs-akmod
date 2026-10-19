@@ -144,23 +144,14 @@ SOURCE_NAME="$(
 
 [[ -n "$SOURCE_NAME" ]] || die "Nom de Source0 introuvable dans le SPEC"
 
-# Localisation garantie du tarball source dans l'un des dossiers de l'utilisateur
-LOCAL_SOURCE_PATH=""
-if [[ -f "$PROJECT/SOURCES/$SOURCE_NAME" ]]; then
-    LOCAL_SOURCE_PATH="$PROJECT/SOURCES/$SOURCE_NAME"
-elif [[ -f "$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME" ]]; then
+# L'archive source se trouve directement dans rpmbuild/SOURCES ou dans le projet
+if [[ -f "$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME" ]]; then
     LOCAL_SOURCE_PATH="$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME"
-elif [[ -f "$HOME/Developpement/sources/$SOURCE_NAME" ]]; then
-    LOCAL_SOURCE_PATH="$HOME/Developpement/sources/$SOURCE_NAME"
+elif [[ -f "$PROJECT/SOURCES/$SOURCE_NAME" ]]; then
+    LOCAL_SOURCE_PATH="$PROJECT/SOURCES/$SOURCE_NAME"
 else
-    # Fallback ultime : prend le premier tarball trouvé
-    LOCAL_SOURCE_PATH="$(find "$PROJECT/SOURCES" "$RPMBUILD_TOPDIR/SOURCES" "$HOME/Developpement/sources" -maxdepth 1 -name "*.tar.gz" -print -quit 2>/dev/null || true)"
+    die "Archive source introuvable : $SOURCE_NAME"
 fi
-
-[[ -n "$LOCAL_SOURCE_PATH" && -f "$LOCAL_SOURCE_PATH" ]] ||
-    die "Archive source introuvable pour : $SOURCE_NAME"
-
-TARBALL_BASENAME="$(basename "$LOCAL_SOURCE_PATH")"
 
 /usr/bin/mkdir -p \
     "$RPMBUILD_TOPDIR/BUILD" \
@@ -170,13 +161,9 @@ TARBALL_BASENAME="$(basename "$LOCAL_SOURCE_PATH")"
     "$RPMBUILD_TOPDIR/SPECS" \
     "$RPMBUILD_TOPDIR/SRPMS"
 
-# Synchronisation indispensable des sources et du SPEC vers rpmbuild
+# Synchronisation indispensable vers rpmbuild
 /usr/bin/cp -f "$SPEC_FILE" "$RPMBUILD_SPEC"
-/usr/bin/cp -f "$LOCAL_SOURCE_PATH" "$RPMBUILD_TOPDIR/SOURCES/$TARBALL_BASENAME"
-
-if [[ "$TARBALL_BASENAME" != "$SOURCE_NAME" ]]; then
-    sed -i "s|Source0:.*|Source0:        $TARBALL_BASENAME|" "$RPMBUILD_SPEC"
-fi
+/usr/bin/cp -f "$LOCAL_SOURCE_PATH" "$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME"
 
 /usr/bin/rpmbuild \
     -ba \
