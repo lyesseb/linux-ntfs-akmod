@@ -144,13 +144,17 @@ SOURCE_NAME="$(
 
 [[ -n "$SOURCE_NAME" ]] || die "Nom de Source0 introuvable dans le SPEC"
 
-# Recherche directe ou fallback sur n'importe quel tarball disponible
-LOCAL_SOURCE_PATH="$PROJECT/SOURCES/$SOURCE_NAME"
-if [[ ! -f "$LOCAL_SOURCE_PATH" ]]; then
+# Localisation garantie du tarball source dans l'un des dossiers de l'utilisateur
+LOCAL_SOURCE_PATH=""
+if [[ -f "$PROJECT/SOURCES/$SOURCE_NAME" ]]; then
+    LOCAL_SOURCE_PATH="$PROJECT/SOURCES/$SOURCE_NAME"
+elif [[ -f "$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME" ]]; then
     LOCAL_SOURCE_PATH="$RPMBUILD_TOPDIR/SOURCES/$SOURCE_NAME"
-fi
-if [[ ! -f "$LOCAL_SOURCE_PATH" ]]; then
-    LOCAL_SOURCE_PATH="$(find "$PROJECT/SOURCES" "$RPMBUILD_TOPDIR/SOURCES" "$HOME/Developpement/sources" -name "*.tar.gz" -print -quit 2>/dev/null || true)"
+elif [[ -f "$HOME/Developpement/sources/$SOURCE_NAME" ]]; then
+    LOCAL_SOURCE_PATH="$HOME/Developpement/sources/$SOURCE_NAME"
+else
+    # Fallback ultime : prend le premier tarball trouvé
+    LOCAL_SOURCE_PATH="$(find "$PROJECT/SOURCES" "$RPMBUILD_TOPDIR/SOURCES" "$HOME/Developpement/sources" -maxdepth 1 -name "*.tar.gz" -print -quit 2>/dev/null || true)"
 fi
 
 [[ -n "$LOCAL_SOURCE_PATH" && -f "$LOCAL_SOURCE_PATH" ]] ||
@@ -166,7 +170,7 @@ TARBALL_BASENAME="$(basename "$LOCAL_SOURCE_PATH")"
     "$RPMBUILD_TOPDIR/SPECS" \
     "$RPMBUILD_TOPDIR/SRPMS"
 
-# Synchronisation indispensable vers rpmbuild
+# Synchronisation indispensable des sources et du SPEC vers rpmbuild
 /usr/bin/cp -f "$SPEC_FILE" "$RPMBUILD_SPEC"
 /usr/bin/cp -f "$LOCAL_SOURCE_PATH" "$RPMBUILD_TOPDIR/SOURCES/$TARBALL_BASENAME"
 
